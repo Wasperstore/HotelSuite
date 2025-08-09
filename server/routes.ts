@@ -6,6 +6,9 @@ import { insertHotelSchema, insertUserSchema, insertRoomSchema, insertBookingSch
 import { z } from "zod";
 import { domainSeparationMiddleware, requireSuperAdminDomain } from "./middleware/domain-separation";
 import { generateTempPassword, generateInviteToken, createInviteEmail, createPasswordResetEmail, sendEmail } from "./utils/email";
+import { generateQRCode, validateQRCode } from "./utils/qr-generator";
+import { generateICalFeed, syncOTABookings } from "./utils/ical-sync";
+import { paymentService } from "./utils/payment-integration";
 import { scrypt } from "crypto";
 import { promisify } from "util";
 
@@ -71,6 +74,171 @@ export function registerRoutes(app: Express): Server {
       
       const users = await storage.getAllUsers();
       res.json(users);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // OTA iCal sync routes
+  app.get("/api/hotels/:hotelId/ical", async (req, res, next) => {
+    try {
+      const { hotelId } = req.params;
+      
+      const ical = await generateICalFeed(hotelId);
+      
+      res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="hotel-${hotelId}-bookings.ics"`);
+      res.send(ical);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/hotels/:hotelId/sync-ota", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || !['SUPER_ADMIN', 'HOTEL_OWNER', 'HOTEL_MANAGER'].includes(req.user?.role || '')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { hotelId } = req.params;
+      const { platform, icalUrl } = req.body;
+
+      const result = await syncOTABookings(hotelId, platform, icalUrl);
+      
+      res.json({
+        message: "OTA sync completed",
+        synced: result.synced,
+        errors: result.errors
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // QR Code routes
+  app.get("/api/qr/:code", async (req, res, next) => {
+    try {
+      const { code } = req.params;
+      
+      const result = await validateQRCode(code);
+      
+      if (!result.valid) {
+        return res.status(404).json({ error: result.error });
+      }
+      
+      res.json(result.data);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/hotels/:hotelId/qr-codes", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { hotelId } = req.params;
+      const { type, roomId, data } = req.body;
+
+      const qrCode = await generateQRCode({
+        type,
+        hotelId,
+        roomId,
+        data
+      });
+      
+      res.json({ qrCode });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Mobile room key routes
+  app.post("/api/room-access/log", async (req, res, next) => {
+    try {
+      const { keyId, action, timestamp, deviceInfo } = req.body;
+      
+      // Log room access attempt
+      console.log(`Room access log: ${keyId} - ${action} at ${timestamp} from ${deviceInfo}`);
+      
+      // In production, save to database
+      res.json({ success: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Biometric authentication routes
+  app.post("/api/auth/biometric-log", async (req, res, next) => {
+    try {
+      const { staffId, method, timestamp, deviceInfo, success } = req.body;
+      
+      // Log biometric authentication attempt
+      console.log(`Biometric auth: ${staffId} - ${method} - ${success ? 'Success' : 'Failed'} at ${timestamp}`);
+      
+      // In production, save to attendance logs
+      res.json({ logged: true });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Payment Integration Routes
+  app.post("/api/payments/initialize", async (req, res, next) => {
+    try {
+      const { provider, amount, currency, customerEmail, customerName, customerPhone, reference, description, callbackUrl } = req.body;
+
+      if (!provider || !amount || !currency || !customerEmail || !reference) {
+        return res.status(400).json({ message: "Missing required payment parameters" });
+      }
+
+      const paymentResult = await paymentService.initializePayment(provider, {
+        amount,
+        currency,
+        customerEmail,
+        customerName,
+        customerPhone,
+        reference,
+        description: description || 'Hotel Booking Payment',
+        callbackUrl
+      });
+
+      res.json(paymentResult);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/payments/verify", async (req, res, next) => {
+    try {
+      const { provider, reference } = req.body;
+
+      if (!provider || !reference) {
+        return res.status(400).json({ message: "Provider and reference are required" });
+      }
+
+      const verification = await paymentService.verifyPayment(provider, reference);
+      res.json(verification);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/payments/providers", async (req, res, next) => {
+    try {
+      const { country, currency } = req.query;
+
+      if (!country || !currency) {
+        return res.status(400).json({ message: "Country and currency parameters are required" });
+      }
+
+      const bestProvider = paymentService.getBestProvider(country as string, currency as string);
+      
+      res.json({
+        recommended: bestProvider,
+        available: paymentService.getBestProvider(country as string, currency as string) ? [bestProvider] : []
+      });
     } catch (error) {
       next(error);
     }

@@ -13,6 +13,9 @@ import FrontDeskPWA from "@/pages/front-desk-pwa";
 import GeneratorTracker from "@/pages/generator-tracker";
 import GuestBooking from "@/pages/guest-booking";
 import TenantRoleRouter from "@/pages/tenant-role-router";
+import CSVImportWizard from "@/pages/csv-import-wizard";
+import MobileRoomKey from "@/pages/mobile-room-key";
+import BiometricStaffLogin from "@/pages/biometric-staff-login";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -25,6 +28,12 @@ function Router() {
       <ProtectedRoute path="/owner" component={HotelOwnerDashboard} />
       <ProtectedRoute path="/front-desk" component={FrontDeskPWA} />
       <ProtectedRoute path="/generator" component={GeneratorTracker} />
+      
+      {/* Advanced Features */}
+      <ProtectedRoute path="/csv-import" component={CSVImportWizard} />
+      <Route path="/mobile-room-key" component={MobileRoomKey} />
+      <Route path="/biometric-login" component={BiometricStaffLogin} />
+      
       {/* Tenant-based routing for {hotel-slug} */}
       <Route path="/:hotelSlug/book" component={GuestBooking} />
       <ProtectedRoute path="/:hotelSlug/:role" component={TenantRoleRouter} />
