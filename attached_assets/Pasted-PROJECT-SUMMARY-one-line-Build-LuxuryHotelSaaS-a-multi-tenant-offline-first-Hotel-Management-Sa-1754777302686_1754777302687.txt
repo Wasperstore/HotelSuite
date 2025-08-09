@@ -1,0 +1,410 @@
+PROJECT SUMMARY (one line)
+Build LuxuryHotelSaaS — a multi-tenant, offline-first Hotel Management SaaS (Super Admin + Hotel Admin + Public booking portal) with generator/diesel tracker, local payments (Paystack/Flutterwave), WhatsApp/SMS integration, OTA iCal support, PIN login, and owner-first creation flow. Include homepage design with images and the red->purple gradient theme tokens discussed earlier.
+
+DOMAINS
+admin.luxuryhotelsaas.com — Super Admin & Developer console
+
+api.luxuryhotelsaas.com — centralized backend API
+
+{hotelSlug}.luxuryhotelsaas.com or custom domain → hotel admin & public portal
+
+TECH STACK (must be used)
+Frontend: Next.js (recommended) or React + Vite, TailwindCSS, shadcn/ui primitives, Framer Motion for micro-interactions
+
+Backend: Node.js + Express
+
+DB: PostgreSQL (single DB; row-level tenant isolation), Prisma ORM
+
+Cache & Queues: Redis + BullMQ
+
+Auth: JWT tokens (httpOnly cookies) + optional Firebase helpers (FCM, OTP)
+
+Storage: S3 / Cloudinary
+
+CI/CD: GitHub Actions; Frontend deploy to Vercel, backend to Render/Fly.io
+
+Monitoring: Sentry + logs (Logflare or similar)
+
+HIGH-LEVEL REQUIREMENTS (must be implemented)
+Owner-First Flow
+
+Create Hotel Owner first (unique email system-wide).
+
+Create Hotel second, selecting an existing unassigned owner.
+
+Owner cannot login until assigned at least one hotel.
+
+Hotel cannot exist without an owner.
+
+Global Unique Email
+
+users.email must be globally unique (DB constraint). Deleting a user frees the email.
+
+Routing & Role Namespacing
+
+Global roles on admin domain: /super-admin/*, /developer/*
+
+Tenant roles on tenant domain or slug: /{hotelSlug}/{role}/* eg /azzarahhotel/manager/*
+
+For custom domain, role path becomes /{role}/* and tenant is resolved from Host header.
+
+RBAC & Security
+
+RBAC middleware verifying JWT claims: userId, role, hotelId/tenantId.
+
+Enforce role+tenant checks on all API routes.
+
+Rate limit sensitive endpoints; invalidate tokens on role change.
+
+Auth Flows
+
+Email + Password login (bcrypt hashed).
+
+Email + 6-digit PIN login (PIN hashed; validated only with email).
+
+Invite flow: create invite token (expires 48h), email to user; user sets password on accept.
+
+Force password reset on first login when admin created credentials.
+
+OTP/2FA optional for high-privilege roles.
+
+Offline / PWA
+
+Front Desk should be a PWA with offline caching for room & booking data.
+
+Queue offline actions (create booking, check-in) and sync when online.
+
+Provide visual sync/online status in UI.
+
+Booking Engine
+
+Hold mechanism: create HELD booking with holdExpires.
+
+Confirm only after payment webhook -> change to CONFIRMED.
+
+Use DB transactions and SELECT FOR UPDATE or application-level locks to avoid double-booking.
+
+Background job expires holds and frees rooms.
+
+Payments & Webhooks
+
+Integrate Paystack & Flutterwave (and Stripe optional).
+
+Implement secure webhook endpoints for payment confirmation.
+
+Payment creation -> return hosted payment or client token; on success webhook confirm booking.
+
+iCal OTA Sync
+
+Export per-room iCal feeds.
+
+Import external iCal and create OTA bookings; mark source as OTA.
+
+Scheduler to fetch iCal feeds every 5–15 mins (use BullMQ job).
+
+Generator/Diesel Tracker
+
+Model for generator logs: fuelLiters, startTime, endTime, cost, notes.
+
+Dashboard widget for fuel usage, cost-per-night, alerts for low fuel.
+
+Kiosk & QR
+
+Kiosk Mode: tablet-optimized PWA flows for self-check-in with minimal UI.
+
+QR per room: link to room menu, order food, request housekeeping.
+
+Staff Attendance
+
+Punch In/Out (mobile + web).
+
+Optional biometric support for future (face/fingerprint).
+
+Timesheet export for payroll.
+
+Seed Super Admin
+
+Seed:
+
+makefile
+Copy
+Edit
+username: wasperstore  
+email: wasperstore@gmail.com (non-editable)  
+password: Azeezwosilat1986@
+Seed script creates this user and an example hotel + owner for development.
+
+Homepage Design & Theme
+
+Hero with full-width image (hotel lifestyle photo), tagline, CTA.
+
+Features cards, How it works, Pricing, Testimonials, Footer.
+
+Theme colors (use Tailwind tokens):
+
+--brand-red: #D7263D (primary)
+
+--brand-purple: #7C3AED (accent)
+
+--success: #0F9D58, --warn: #F9AB00, --danger: #D93025
+
+background #F8F9FA, text #202124
+
+Typography: Inter for UI, Playfair Display (or similar) for headings.
+
+Provide sample hotel images (Unsplash-like) in /public/home/.
+
+Provide Tailwind config snippet and sample homepage components.
+
+No tabs; unique sidebars
+
+Each role dashboard must use a left-hand sidebar unique to that role; no tabbed navigation anywhere in admin dashboards.
+
+DATABASE: PRISMA SCHEMA SNIPPET (required)
+Create prisma/schema.prisma with at least these models (expandable later):
+
+prisma
+Copy
+Edit
+datasource db { provider = "postgresql" url = env("DATABASE_URL") }
+generator client { provider = "prisma-client-js" }
+
+model User {
+  id                 String   @id @default(cuid())
+  email              String   @unique
+  username           String?
+  fullName           String?
+  passwordHash       String?
+  pinHash            String?
+  role               Role
+  hotelId            String?  // null for super/developer
+  tenantId           String?  // optional if using tenant abstraction
+  forcePasswordReset Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  deletedAt          DateTime?
+}
+
+enum Role {
+  SUPER_ADMIN
+  DEVELOPER_ADMIN
+  HOTEL_OWNER
+  HOTEL_MANAGER
+  FRONT_DESK
+  HOUSEKEEPING
+  MAINTENANCE
+  ACCOUNTING
+  POS_STAFF
+  GUEST
+}
+
+model Hotel {
+  id        String @id @default(cuid())
+  name      String
+  slug      String  @unique
+  domain    String? @unique
+  ownerId   String?
+  status    String
+  createdAt DateTime @default(now())
+}
+
+model Room {
+  id       String   @id @default(cuid())
+  hotelId  String
+  number   String
+  label    String?
+  type     String
+  status   String
+}
+
+model Booking {
+  id           String  @id @default(cuid())
+  hotelId      String
+  roomId       String?
+  guestName    String
+  guestEmail   String
+  checkinDate  DateTime
+  checkoutDate DateTime
+  status       String
+  holdExpires  DateTime?
+  createdAt    DateTime @default(now())
+}
+
+model GeneratorLog {
+  id         String   @id @default(cuid())
+  hotelId    String
+  liters     Float
+  startTime  DateTime
+  endTime    DateTime
+  cost       Float
+  notes      String?
+  createdAt  DateTime @default(now())
+}
+FILE STRUCTURE (recommended)
+bash
+Copy
+Edit
+/apps
+  /superadmin (Next.js)
+  /hotel-admin (Next.js)
+  /public-portal (Next.js)
+  /shared-ui (packages/ui)
+  /api (Express + Prisma)
+prisma/
+  schema.prisma
+scripts/
+  seed.js
+README.md
+ENVIRONMENT VARIABLES (must be configured)
+makefile
+Copy
+Edit
+DATABASE_URL=
+JWT_SECRET=
+JWT_REFRESH_SECRET=
+SENDGRID_API_KEY=
+PAYSTACK_SECRET=
+FLUTTERWAVE_SECRET=
+S3_BUCKET=
+CLOUDFLARE_API_KEY=
+REDIS_URL=
+NEXTAUTH_URL=
+BUILD SEQUENCE (step-by-step; confirm successful tests at each stage)
+Step 0 — Clean slate
+
+Delete any existing generated files that conflict. Confirm deletion or replacement.
+
+Step 1 — Monorepo scaffold
+
+Create apps structure, packages, initial package.json, and install dependencies.
+
+Commit scaffold to GitHub.
+
+Step 2 — Prisma & DB
+
+Add schema.prisma (use snippet above + extended fields).
+
+Run prisma migrate dev --name init.
+
+Create seed.js to create wasperstore super admin + example hotel + owner user (ensure hashed password).
+
+Commit migration & seed.
+
+Step 3 — API skeleton
+
+Build Express API with:
+
+Auth routes: /auth/login, /auth/invite, /auth/accept-invite, /auth/reset-password
+
+Hotel routes: /hotels, /hotels/:id/rooms, /hotels/:id/bookings
+
+Admin routes: /admin/hotels, /admin/owners, /admin/users
+
+Implement RBAC middleware & tenant resolver (Host header or x-tenant header in dev).
+
+Add test scripts for auth + basic hotel creation.
+
+Step 4 — Super Admin front-end
+
+Next.js app for admin.luxuryhotelsaas.com.
+
+Sidebar (unique), Dashboard KPIs, Hotels list, Owners list, User directory.
+
+Wire to API endpoints (mock where necessary).
+
+Add Tailwind config with theme tokens.
+
+Step 5 — Hotel Admin front-end
+
+Next.js app with tenant routing (dynamic [hotelSlug]), role-based redirects.
+
+Sidebars for Owner, Manager, Front Desk.
+
+Staff invite modal & create credential flow (force reset).
+
+Reservations calendar placeholder & bookings list.
+
+Step 6 — Public Portal
+
+Hotel landing page + rooms listing + booking flow.
+
+Integrate payment flow (test mode) and webhook handler.
+
+Step 7 — Offline PWA for Front Desk
+
+Add service worker, caching strategies, offline queueing mechanism for bookings.
+
+Visual sync indicator.
+
+Step 8 — Payment, SMS, WhatsApp
+
+Implement Paystack/Flutterwave + webhook confirm booking actions.
+
+Integrate Twilio/Termii/WhatsApp Business for booking notifications.
+
+Step 9 — Advanced jobs
+
+Redis + BullMQ for background expiry jobs, iCal sync, email queues.
+
+Step 10 — Testing & Acceptance
+
+Unit tests for auth & booking logic.
+
+Integration tests for hold/confirm flow.
+
+E2E smoke test for booking → payment → webhook flow.
+
+Acceptance checklist:
+
+Owner-first creation and blocked owner login until assigned.
+
+Global unique email constraint enforced.
+
+PIN login works and is scoped by email.
+
+Booking hold prevents double-booking under concurrency tests.
+
+Seed super admin exists and can login.
+
+Step 11 — Deploy
+
+Deploy API (Render/Fly).
+
+Deploy Next.js apps to Vercel (set domains).
+
+Configure DNS for admin & example hotel.
+
+Run production migration and seed.
+
+ACCEPTANCE CRITERIA (final)
+The monorepo builds and runs locally (dev) and in Replit preview without errors.
+
+Prisma migrations applied; seed user created.
+
+Super Admin portal can create Hotel Owner (unique email) and then create Hotel by selecting owner.
+
+Hotel Owner can invite staff via email; staff forced to reset password on first login.
+
+Tenant role routing works: /azzarahhotel/manager loads manager dashboard only for manager users of that hotel.
+
+Front Desk PWA works offline and syncs queued actions when online.
+
+Booking hold logic prevents concurrent double-booking in stress tests.
+
+Payments webhooks confirm bookings and trigger confirmation emails/SMS/WhatsApp.
+
+Generator logs can be recorded and visualized in hotel analytics.
+
+DELIVERY FORMAT & Communication (how Replit should output)
+Produce code in the monorepo with clear commit messages.
+
+For each major step, produce:
+
+A short summary of work done.
+
+A list of changed/created files.
+
+How to run locally (commands).
+
+Tests added and how to run them.
+
+If any step cannot be completed automatically (e.g., external account setup), output exact instructions and placeholders in env file.
