@@ -93,19 +93,6 @@ export default function EnhancedSuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
-  // Default values for when API data isn't loaded yet
-  const defaultStats: SystemStats = {
-    totalHotels: 0,
-    activeUsers: 0,
-    activeSubscriptions: 0,
-    monthlyRevenue: 0,
-    supportTicketsPending: 0,
-    apiUptime: 0,
-    dbUsage: 0
-  };
-
-  const stats = systemStats || defaultStats;
-
   const { data: hotels = [] } = useQuery({
     queryKey: ["/api/admin/hotels"],
   });
@@ -133,6 +120,19 @@ export default function EnhancedSuperAdminDashboard() {
   const { data: subscriptionPlans = [] } = useQuery({
     queryKey: ["/api/admin/subscription-plans"],
   });
+
+  // Default values for when API data isn't loaded yet
+  const defaultStats: SystemStats = {
+    totalHotels: 0,
+    activeUsers: 0,
+    activeSubscriptions: 0,
+    monthlyRevenue: 0,
+    supportTicketsPending: 0,
+    apiUptime: 0,
+    dbUsage: 0
+  };
+
+  const stats = systemStats || defaultStats;
 
   const getPriorityColor = (priority: string) => {
     const colors = {
@@ -1488,108 +1488,6 @@ export default function EnhancedSuperAdminDashboard() {
                       <Activity className="w-8 h-8 mb-2" />
                       <span>Run Diagnostics</span>
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Audit Logs */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Audit Logs</CardTitle>
-                  <p className="text-sm text-gray-600">Track every system change by any user</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      {
-                        id: '1',
-                        action: 'Hotel Created',
-                        user: 'Super Admin',
-                        target: 'Lagos Grand Hotel',
-                        timestamp: new Date(Date.now() - 3600000),
-                        details: 'Created new hotel with 25 rooms'
-                      },
-                      {
-                        id: '2',
-                        action: 'User Role Changed',
-                        user: 'Super Admin',
-                        target: 'john.doe@hotel.com',
-                        timestamp: new Date(Date.now() - 7200000),
-                        details: 'Changed role from FRONT_DESK to HOTEL_MANAGER'
-                      },
-                      {
-                        id: '3',
-                        action: 'Payment Processed',
-                        user: 'System',
-                        target: 'Abuja Luxury Suites',
-                        timestamp: new Date(Date.now() - 10800000),
-                        details: 'Monthly subscription payment ₦75,000'
-                      },
-                      {
-                        id: '4',
-                        action: 'API Key Updated',
-                        user: 'Developer Admin',
-                        target: 'Paystack Integration',
-                        timestamp: new Date(Date.now() - 14400000),
-                        details: 'Updated Paystack secret key'
-                      }
-                    ].map((log) => (
-                      <div key={log.id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-purple-600" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium">{log.action}</h4>
-                            <p className="text-sm text-gray-600">
-                              {log.user} → {log.target}
-                            </p>
-                            <p className="text-xs text-gray-500">{log.details}</p>
-                          </div>
-                        </div>
-                        <div className="text-right text-xs text-gray-500">
-                          {log.timestamp.toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-4 flex justify-between">
-                    <Button variant="outline">
-                      <Download className="w-4 h-4 mr-2" />
-                      Export Logs
-                    </Button>
-                    <Button variant="outline">
-                      <Filter className="w-4 h-4 mr-2" />
-                      Advanced Filters
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* System Announcements */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Announcements</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="p-3 bg-blue-50 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant="default">System Update</Badge>
-                        <span className="text-xs text-gray-500">2 days ago</span>
-                      </div>
-                      <p className="text-sm font-medium">New payment integration features released</p>
-                      <p className="text-xs text-gray-600">Stripe integration now available for international hotels</p>
-                    </div>
-                    <div className="p-3 bg-green-50 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant="secondary">Feature Release</Badge>
-                        <span className="text-xs text-gray-500">1 week ago</span>
-                      </div>
-                      <p className="text-sm font-medium">Mobile room key system now available</p>
-                      <p className="text-xs text-gray-600">QR-based digital room access for enhanced guest experience</p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
