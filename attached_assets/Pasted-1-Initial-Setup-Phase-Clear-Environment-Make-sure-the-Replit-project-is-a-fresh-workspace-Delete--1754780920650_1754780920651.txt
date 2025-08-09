@@ -1,0 +1,104 @@
+1️⃣ Initial Setup Phase
+Clear Environment
+Make sure the Replit project is a fresh workspace. Delete any placeholder or previous test files so Replit AI doesn’t mix in old code.
+
+Initialize Git Repo
+Enable version control in Replit so every AI-generated code chunk is committed — allowing you to roll back easily.
+
+Setup Monorepo Structure
+
+/frontend → Next.js or React + Vite
+
+/backend → Node.js + Express + Prisma ORM
+
+/shared → Common types, constants, utils
+
+/infrastructure → Dockerfile, deployment configs
+
+2️⃣ AI Build Sequence
+(You can feed this to Replit AI in steps, instead of dumping the whole PRD at once.)
+
+Database & Multi-Tenant Schema
+
+Build PostgreSQL schema with Prisma for multi-tenancy (row-based tenant isolation).
+
+Include seed scripts for Super Admin and one demo Hotel Owner.
+
+Backend Core (Auth + RBAC)
+
+JWT-based authentication.
+
+Role-based access middleware.
+
+Unique routing by role: /super-admin, /[hotelSlug]/manager, etc.
+
+Frontend Core Setup
+
+Global theme & styles (from PRD theme section).
+
+Mobile-responsive layout with sidebar navigation (no tabs).
+
+Dark/light mode toggle.
+
+Domain Separation Logic
+
+Super Admin → admin.luxuryhotelsaas.com
+
+Hotel Admin → hotelSlug/admin
+
+Public Portal → hotelSlug
+
+Invitation & Password Reset Flow
+
+Temp password creation → force reset on first login.
+
+Email invite with setup link.
+
+Homepage & Landing Pages
+
+Full homepage design (with images & theme per PRD).
+
+Public hotel landing page with booking widget.
+
+Modules (Per Role)
+
+Super Admin → Hotels, Owners, Billing, Logs.
+
+Hotel Owner → Staff Management, Reservations, Reports.
+
+Staff Roles → Operations modules only.
+
+Guest-Facing Tools
+
+QR menu, room service requests.
+
+Kiosk mode for tablets.
+
+Advanced Features (Phase 2)
+
+OTA iCal sync.
+
+Staff attendance & salary calculation.
+
+Diesel usage tracker.
+
+3️⃣ Testing & Validation
+Use seeded data to test role-based navigation.
+
+Ensure no duplicate email creation system-wide.
+
+Test login redirects for each role.
+
+Simulate multiple hotels to confirm data isolation.
+
+4️⃣ Deployment & Scaling
+Configure for Vercel (frontend) + Railway/Supabase/Render (backend).
+
+Setup CI/CD pipeline in Replit with GitHub Actions.
+
+Add custom domain mappings for hotel portals.
+
+5️⃣ Pricing Model Integration
+Implement Stripe subscription billing (monthly/yearly).
+
+Track feature usage per plan.

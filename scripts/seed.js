@@ -1,7 +1,8 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
-import { users, hotels, rooms } from "../shared/schema.js";
+// Note: This file uses .js extension but imports .ts files via tsx runtime
+import { users, hotels, rooms, qrCodes, payments, messageLogs } from "../shared/schema.js";
 import { eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";

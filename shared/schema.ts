@@ -202,6 +202,39 @@ export const attendanceLogsRelations = relations(attendanceLogs, ({ one }) => ({
   })
 }));
 
+export const qrCodesRelations = relations(qrCodes, ({ one }) => ({
+  hotel: one(hotels, {
+    fields: [qrCodes.hotelId],
+    references: [hotels.id]
+  }),
+  room: one(rooms, {
+    fields: [qrCodes.roomId],
+    references: [rooms.id]
+  })
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  hotel: one(hotels, {
+    fields: [payments.hotelId],
+    references: [hotels.id]
+  }),
+  booking: one(bookings, {
+    fields: [payments.bookingId],
+    references: [bookings.id]
+  })
+}));
+
+export const messageLogsRelations = relations(messageLogs, ({ one }) => ({
+  hotel: one(hotels, {
+    fields: [messageLogs.hotelId],
+    references: [hotels.id]
+  }),
+  booking: one(bookings, {
+    fields: [messageLogs.bookingId],
+    references: [bookings.id]
+  })
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -233,6 +266,21 @@ export const insertAttendanceLogSchema = createInsertSchema(attendanceLogs).omit
   createdAt: true
 });
 
+export const insertQRCodeSchema = createInsertSchema(qrCodes).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true
+});
+
+export const insertMessageLogSchema = createInsertSchema(messageLogs).omit({
+  id: true,
+  createdAt: true
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -246,3 +294,12 @@ export type GeneratorLog = typeof generatorLogs.$inferSelect;
 export type InsertGeneratorLog = z.infer<typeof insertGeneratorLogSchema>;
 export type AttendanceLog = typeof attendanceLogs.$inferSelect;
 export type InsertAttendanceLog = z.infer<typeof insertAttendanceLogSchema>;
+
+export type QRCode = typeof qrCodes.$inferSelect;
+export type InsertQRCode = z.infer<typeof insertQRCodeSchema>;
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type MessageLog = typeof messageLogs.$inferSelect;
+export type InsertMessageLog = z.infer<typeof insertMessageLogSchema>;

@@ -2,10 +2,19 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertHotelSchema, insertUserSchema } from "@shared/schema";
+import { insertHotelSchema, insertUserSchema, insertRoomSchema, insertBookingSchema, insertGeneratorLogSchema } from "@shared/schema";
 import { z } from "zod";
+import { domainSeparationMiddleware, requireSuperAdminDomain } from "./middleware/domain-separation";
+import { generateTempPassword, generateInviteToken, createInviteEmail, createPasswordResetEmail, sendEmail } from "./utils/email";
+import { scrypt } from "crypto";
+import { promisify } from "util";
+
+const scryptAsync = promisify(scrypt);
 
 export function registerRoutes(app: Express): Server {
+  // Apply domain separation middleware
+  app.use(domainSeparationMiddleware);
+  
   setupAuth(app);
 
   // Super Admin Routes

@@ -1,4 +1,4 @@
-import { users, hotels, rooms, bookings, generatorLogs, attendanceLogs, type User, type InsertUser, type Hotel, type InsertHotel, type Room, type InsertRoom, type Booking, type InsertBooking, type GeneratorLog, type InsertGeneratorLog, type AttendanceLog, type InsertAttendanceLog } from "@shared/schema";
+import { users, hotels, rooms, bookings, generatorLogs, attendanceLogs, qrCodes, payments, messageLogs, type User, type InsertUser, type Hotel, type InsertHotel, type Room, type InsertRoom, type Booking, type InsertBooking, type GeneratorLog, type InsertGeneratorLog, type AttendanceLog, type InsertAttendanceLog, type QRCode, type InsertQRCode, type Payment, type InsertPayment, type MessageLog, type InsertMessageLog } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, isNull } from "drizzle-orm";
 import session from "express-session";
@@ -37,6 +37,21 @@ export interface IStorage {
   
   getAttendanceLogsByHotel(hotelId: string): Promise<AttendanceLog[]>;
   createAttendanceLog(log: InsertAttendanceLog): Promise<AttendanceLog>;
+  
+  // QR Code methods
+  createQRCode(qrCode: InsertQRCode): Promise<QRCode>;
+  getQRCodeByCode(code: string): Promise<QRCode | undefined>;
+  updateQRCode(id: string, updates: Partial<InsertQRCode>): Promise<QRCode>;
+  
+  // Payment methods
+  createPayment(payment: InsertPayment): Promise<Payment>;
+  getPaymentsByHotel(hotelId: string): Promise<Payment[]>;
+  updatePayment(id: string, updates: Partial<InsertPayment>): Promise<Payment>;
+  
+  // Message log methods
+  createMessageLog(messageLog: InsertMessageLog): Promise<MessageLog>;
+  getMessageLogsByHotel(hotelId: string): Promise<MessageLog[]>;
+  updateMessageLog(id: string, updates: Partial<InsertMessageLog>): Promise<MessageLog>;
   
   // New methods for owner-first flow
   getAllUsers(): Promise<User[]>;
@@ -216,6 +231,52 @@ export class DatabaseStorage implements IStorage {
 
   async getUsersByHotel(hotelId: string): Promise<User[]> {
     return await db.select().from(users).where(eq(users.hotelId, hotelId));
+  }
+
+  // QR Code methods implementation
+  async createQRCode(qrCode: InsertQRCode): Promise<QRCode> {
+    const [result] = await db.insert(qrCodes).values(qrCode).returning();
+    return result;
+  }
+
+  async getQRCodeByCode(code: string): Promise<QRCode | undefined> {
+    const [qrCode] = await db.select().from(qrCodes).where(eq(qrCodes.code, code));
+    return qrCode || undefined;
+  }
+
+  async updateQRCode(id: string, updates: Partial<InsertQRCode>): Promise<QRCode> {
+    const [qrCode] = await db.update(qrCodes).set(updates).where(eq(qrCodes.id, id)).returning();
+    return qrCode;
+  }
+
+  // Payment methods implementation
+  async createPayment(payment: InsertPayment): Promise<Payment> {
+    const [result] = await db.insert(payments).values(payment).returning();
+    return result;
+  }
+
+  async getPaymentsByHotel(hotelId: string): Promise<Payment[]> {
+    return await db.select().from(payments).where(eq(payments.hotelId, hotelId));
+  }
+
+  async updatePayment(id: string, updates: Partial<InsertPayment>): Promise<Payment> {
+    const [payment] = await db.update(payments).set(updates).where(eq(payments.id, id)).returning();
+    return payment;
+  }
+
+  // Message log methods implementation
+  async createMessageLog(messageLog: InsertMessageLog): Promise<MessageLog> {
+    const [result] = await db.insert(messageLogs).values(messageLog).returning();
+    return result;
+  }
+
+  async getMessageLogsByHotel(hotelId: string): Promise<MessageLog[]> {
+    return await db.select().from(messageLogs).where(eq(messageLogs.hotelId, hotelId));
+  }
+
+  async updateMessageLog(id: string, updates: Partial<InsertMessageLog>): Promise<MessageLog> {
+    const [messageLog] = await db.update(messageLogs).set(updates).where(eq(messageLogs.id, id)).returning();
+    return messageLog;
   }
 }
 
