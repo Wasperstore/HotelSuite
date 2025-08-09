@@ -1,6 +1,6 @@
 import { users, hotels, rooms, bookings, generatorLogs, attendanceLogs, type User, type InsertUser, type Hotel, type InsertHotel, type Room, type InsertRoom, type Booking, type InsertBooking, type GeneratorLog, type InsertGeneratorLog, type AttendanceLog, type InsertAttendanceLog } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -38,11 +38,15 @@ export interface IStorage {
   getAttendanceLogsByHotel(hotelId: string): Promise<AttendanceLog[]>;
   createAttendanceLog(log: InsertAttendanceLog): Promise<AttendanceLog>;
   
-  sessionStore: session.SessionStore;
+  // New methods for owner-first flow
+  getAllUsers(): Promise<User[]>;
+  getUnassignedHotelOwners(): Promise<User[]>;
+  
+  sessionStore: any;
 }
 
 export class DatabaseStorage implements IStorage {
-  sessionStore: session.SessionStore;
+  sessionStore: any;
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({ 
@@ -194,6 +198,19 @@ export class DatabaseStorage implements IStorage {
       .values(insertLog)
       .returning();
     return log;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async getUnassignedHotelOwners(): Promise<User[]> {
+    return await db.select().from(users).where(
+      and(
+        eq(users.role, "HOTEL_OWNER"),
+        isNull(users.hotelId)
+      )
+    );
   }
 }
 

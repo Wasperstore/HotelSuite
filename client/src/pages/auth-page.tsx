@@ -49,10 +49,20 @@ export default function AuthPage() {
     }
   });
 
-  // Redirect if already logged in
+  // Redirect if already logged in based on role
   useEffect(() => {
     if (user) {
-      setLocation("/");
+      if (user.role === "SUPER_ADMIN" || user.role === "DEVELOPER_ADMIN") {
+        setLocation("/super-admin");
+      } else if (user.role === "HOTEL_OWNER") {
+        setLocation("/owner");
+      } else if (user.role === "HOTEL_MANAGER" || user.role === "FRONT_DESK" || 
+                 user.role === "HOUSEKEEPING" || user.role === "MAINTENANCE" || 
+                 user.role === "ACCOUNTING" || user.role === "POS_STAFF") {
+        setLocation("/owner");
+      } else {
+        setLocation("/");
+      }
     }
   }, [user, setLocation]);
 

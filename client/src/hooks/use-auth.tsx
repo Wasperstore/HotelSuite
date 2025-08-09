@@ -17,7 +17,10 @@ type AuthContextType = {
   registerMutation: UseMutationResult<SelectUser, Error, InsertUser>;
 };
 
-type LoginData = Pick<InsertUser, "email" | "password">;
+type LoginData = {
+  email: string;
+  password: string;
+};
 
 export const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -38,6 +41,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: (user: SelectUser) => {
       queryClient.setQueryData(["/api/user"], user);
+      
+      // Role-based redirect
+      if (user.role === "SUPER_ADMIN" || user.role === "DEVELOPER_ADMIN") {
+        window.location.href = "/super-admin";
+      } else if (user.role === "HOTEL_OWNER") {
+        window.location.href = "/owner";
+      } else if (user.role === "HOTEL_MANAGER" || user.role === "FRONT_DESK" || 
+                 user.role === "HOUSEKEEPING" || user.role === "MAINTENANCE" || 
+                 user.role === "ACCOUNTING" || user.role === "POS_STAFF") {
+        window.location.href = "/owner"; // Hotel staff goes to owner dashboard for now
+      } else {
+        window.location.href = "/";
+      }
     },
     onError: (error: Error) => {
       toast({

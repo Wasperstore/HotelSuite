@@ -29,7 +29,22 @@ export function registerRoutes(app: Express): Server {
       }
 
       const validatedData = insertHotelSchema.parse(req.body);
+      
+      // Validate that the owner exists and is unassigned
+      if (validatedData.ownerId) {
+        const owner = await storage.getUser(validatedData.ownerId);
+        if (!owner || owner.role !== "HOTEL_OWNER" || owner.hotelId) {
+          return res.status(400).json({ message: "Invalid owner: must be an unassigned hotel owner" });
+        }
+      }
+
       const hotel = await storage.createHotel(validatedData);
+      
+      // Assign the owner to this hotel
+      if (validatedData.ownerId) {
+        await storage.updateUser(validatedData.ownerId, { hotelId: hotel.id });
+      }
+      
       res.status(201).json(hotel);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -45,8 +60,47 @@ export function registerRoutes(app: Express): Server {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      // This would need pagination in production
-      res.json({ message: "Users endpoint - implement pagination" });
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Create Hotel Owner endpoint (Owner-First Flow)
+  app.post("/api/admin/hotel-owners", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const ownerData = insertUserSchema.omit({ hotelId: true, tenantId: true }).parse(req.body);
+      
+      // Ensure role is HOTEL_OWNER
+      const hotelOwner = await storage.createUser({
+        ...ownerData,
+        role: "HOTEL_OWNER",
+        forcePasswordReset: true // Force password reset on first login
+      });
+      
+      res.status(201).json(hotelOwner);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      next(error);
+    }
+  });
+
+  // Get unassigned hotel owners
+  app.get("/api/admin/unassigned-owners", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const unassignedOwners = await storage.getUnassignedHotelOwners();
+      res.json(unassignedOwners);
     } catch (error) {
       next(error);
     }
