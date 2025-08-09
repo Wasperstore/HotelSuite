@@ -94,6 +94,10 @@ export default function EnhancedSuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [showCreateHotelForm, setShowCreateHotelForm] = useState(false);
+  const [showCreateSystemUserForm, setShowCreateSystemUserForm] = useState(false);
+  const [showCreateHotelOwnerForm, setShowCreateHotelOwnerForm] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [userRoleFilter, setUserRoleFilter] = useState("all");
 
   const { data: hotels = [] } = useQuery({
     queryKey: ["/api/admin/hotels"],
@@ -221,6 +225,146 @@ export default function EnhancedSuperAdminDashboard() {
       description: `Exported ${filteredHotels.length} hotels to CSV`
     });
   };
+
+  // User management handlers
+  const handleCreateSystemUser = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    try {
+      const userData = {
+        username: formData.get('username') as string,
+        email: formData.get('email') as string,
+        password: formData.get('password') as string,
+        fullName: formData.get('fullName') as string,
+        role: formData.get('role') as string,
+      };
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "System user created successfully"
+        });
+        setShowCreateSystemUserForm(false);
+        // Refresh users list
+        window.location.reload();
+      } else {
+        throw new Error('Failed to create user');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create system user",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleCreateHotelOwner = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    try {
+      const ownerData = {
+        username: formData.get('username') as string,
+        email: formData.get('email') as string,
+        password: formData.get('password') as string,
+        fullName: formData.get('fullName') as string,
+        phone: formData.get('phone') as string,
+        role: 'HOTEL_OWNER' as const,
+      };
+
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ownerData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Hotel owner created successfully"
+        });
+        setShowCreateHotelOwnerForm(false);
+        // Refresh users list
+        window.location.reload();
+      } else {
+        throw new Error('Failed to create hotel owner');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create hotel owner",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteUser = async (userId: string, userEmail: string) => {
+    if (!confirm(`Are you sure you want to delete user ${userEmail}?`)) return;
+    
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "User deleted successfully"
+        });
+        // Refresh users list
+        window.location.reload();
+      } else {
+        throw new Error('Failed to delete user');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Filter users based on search and role
+  const filteredSystemUsers = (users as any[]).filter((user: any) => {
+    const isSystemUser = ['SUPER_ADMIN', 'DEVELOPER_ADMIN', 'SUPPORT'].includes(user.role);
+    const matchesSearch = !userSearchQuery || 
+      user.fullName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.username?.toLowerCase().includes(userSearchQuery.toLowerCase());
+    
+    const matchesFilter = userRoleFilter === 'all' || user.role === userRoleFilter;
+    
+    return isSystemUser && matchesSearch && matchesFilter;
+  });
+
+  const filteredHotelOwners = (users as any[]).filter((user: any) => {
+    const isHotelOwner = user.role === 'HOTEL_OWNER';
+    const matchesSearch = !userSearchQuery || 
+      user.fullName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.username?.toLowerCase().includes(userSearchQuery.toLowerCase());
+    
+    return isHotelOwner && matchesSearch;
+  });
+
+  const filteredStaffUsers = (users as any[]).filter((user: any) => {
+    const isStaff = !['SUPER_ADMIN', 'DEVELOPER_ADMIN', 'SUPPORT', 'HOTEL_OWNER', 'GUEST'].includes(user.role);
+    const matchesSearch = !userSearchQuery || 
+      user.fullName?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+      user.username?.toLowerCase().includes(userSearchQuery.toLowerCase());
+    
+    return isStaff && matchesSearch;
+  });
 
   const getPriorityColor = (priority: string) => {
     const colors = {
@@ -869,70 +1013,257 @@ export default function EnhancedSuperAdminDashboard() {
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">User & Role Management</h2>
                 <div className="flex space-x-2">
-                  <Button>
+                  <Button onClick={() => setShowCreateSystemUserForm(true)} data-testid="button-add-system-user">
                     <UserPlus className="w-4 h-4 mr-2" />
                     Add System User
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => setShowCreateHotelOwnerForm(true)} data-testid="button-create-hotel-owner">
                     <Plus className="w-4 h-4 mr-2" />
                     Create Hotel Owner
                   </Button>
                 </div>
               </div>
 
+{showCreateSystemUserForm && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Add System User</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setShowCreateSystemUserForm(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleCreateSystemUser} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="userFullName">Full Name *</Label>
+                          <Input
+                            id="userFullName"
+                            name="fullName"
+                            placeholder="John Doe"
+                            required
+                            data-testid="input-user-fullname"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="userUsername">Username *</Label>
+                          <Input
+                            id="userUsername"
+                            name="username"
+                            placeholder="johndoe"
+                            required
+                            data-testid="input-user-username"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="userEmail">Email *</Label>
+                          <Input
+                            id="userEmail"
+                            name="email"
+                            type="email"
+                            placeholder="john@luxuryhotelsaas.com"
+                            required
+                            data-testid="input-user-email"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="userPassword">Password *</Label>
+                          <Input
+                            id="userPassword"
+                            name="password"
+                            type="password"
+                            placeholder="••••••••"
+                            required
+                            data-testid="input-user-password"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="userRole">System Role *</Label>
+                          <select name="role" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" data-testid="select-user-role" required>
+                            <option value="">Select system role</option>
+                            <option value="SUPER_ADMIN">Super Admin</option>
+                            <option value="DEVELOPER_ADMIN">Developer Admin</option>
+                            <option value="SUPPORT">Support Staff</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setShowCreateSystemUserForm(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" data-testid="button-save-system-user">
+                          Create System User
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {showCreateHotelOwnerForm && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Create Hotel Owner</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setShowCreateHotelOwnerForm(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleCreateHotelOwner} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="ownerFullName">Full Name *</Label>
+                          <Input
+                            id="ownerFullName"
+                            name="fullName"
+                            placeholder="Jane Smith"
+                            required
+                            data-testid="input-owner-fullname"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ownerUsername">Username *</Label>
+                          <Input
+                            id="ownerUsername"
+                            name="username"
+                            placeholder="janesmith"
+                            required
+                            data-testid="input-owner-username"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ownerEmail">Email *</Label>
+                          <Input
+                            id="ownerEmail"
+                            name="email"
+                            type="email"
+                            placeholder="jane@hotelexample.com"
+                            required
+                            data-testid="input-owner-email"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ownerPhone">Phone</Label>
+                          <Input
+                            id="ownerPhone"
+                            name="phone"
+                            placeholder="+234 901 234 5678"
+                            data-testid="input-owner-phone"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="ownerPassword">Initial Password *</Label>
+                          <Input
+                            id="ownerPassword"
+                            name="password"
+                            type="password"
+                            placeholder="••••••••"
+                            required
+                            data-testid="input-owner-password"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setShowCreateHotelOwnerForm(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit" data-testid="button-save-hotel-owner">
+                          Create Hotel Owner
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
               <Tabs defaultValue="system-users">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="system-users">System Users</TabsTrigger>
-                  <TabsTrigger value="hotel-owners">Hotel Owners</TabsTrigger>
-                  <TabsTrigger value="staff-directory">Staff Directory</TabsTrigger>
+                  <TabsTrigger value="system-users">System Users ({filteredSystemUsers.length})</TabsTrigger>
+                  <TabsTrigger value="hotel-owners">Hotel Owners ({filteredHotelOwners.length})</TabsTrigger>
+                  <TabsTrigger value="staff-directory">Staff Directory ({filteredStaffUsers.length})</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="system-users" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>System Users</CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <Input placeholder="Search users..." className="max-w-sm" />
-                        <Select>
-                          <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Filter by role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Roles</SelectItem>
-                            <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                            <SelectItem value="DEVELOPER_ADMIN">Developer</SelectItem>
-                            <SelectItem value="SUPPORT">Support</SelectItem>
-                          </SelectContent>
-                        </Select>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>System Users ({filteredSystemUsers.length} users)</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search users..."
+                              value={userSearchQuery}
+                              onChange={(e) => setUserSearchQuery(e.target.value)}
+                              className="pl-8 w-64"
+                              data-testid="input-search-system-users"
+                            />
+                          </div>
+                          <Select value={userRoleFilter} onValueChange={setUserRoleFilter} data-testid="select-system-user-filter">
+                            <SelectTrigger className="w-40">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Roles</SelectItem>
+                              <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                              <SelectItem value="DEVELOPER_ADMIN">Developer</SelectItem>
+                              <SelectItem value="SUPPORT">Support</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {users.filter(u => ['SUPER_ADMIN', 'DEVELOPER_ADMIN', 'SUPPORT'].includes(u.role)).map((user) => (
-                          <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
-                                <Users className="w-5 h-5 text-gray-600" />
+                      {filteredSystemUsers.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500 mb-2">No system users found</p>
+                          <p className="text-sm text-gray-400">
+                            {userSearchQuery || userRoleFilter !== 'all' 
+                              ? 'Try adjusting your search or filters'
+                              : 'Create your first system user to get started'
+                            }
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {filteredSystemUsers.map((user: any) => (
+                            <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`system-user-card-${user.id}`}>
+                              <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                  <Users className="w-5 h-5 text-gray-600" />
+                                </div>
+                                <div>
+                                  <h4 className="font-medium" data-testid={`system-user-name-${user.id}`}>{user.fullName}</h4>
+                                  <p className="text-sm text-gray-600" data-testid={`system-user-email-${user.id}`}>{user.email}</p>
+                                  <p className="text-xs text-gray-500">@{user.username}</p>
+                                  <Badge className="mt-1" variant={user.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}>
+                                    {user.role.replace('_', ' ')}
+                                  </Badge>
+                                </div>
                               </div>
-                              <div>
-                                <h4 className="font-medium">{user.fullName}</h4>
-                                <p className="text-sm text-gray-600">{user.email}</p>
-                                <Badge className="mt-1" variant={user.role === 'SUPER_ADMIN' ? 'default' : 'secondary'}>
-                                  {user.role.replace('_', ' ')}
-                                </Badge>
+                              <div className="flex space-x-2">
+                                <Button variant="outline" size="sm" data-testid={`button-edit-system-user-${user.id}`}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteUser(user.id, user.email)}
+                                  data-testid={`button-delete-system-user-${user.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          ))}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -940,40 +1271,85 @@ export default function EnhancedSuperAdminDashboard() {
                 <TabsContent value="hotel-owners" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Hotel Owners</CardTitle>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>Hotel Owners ({filteredHotelOwners.length} owners)</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search owners..."
+                              value={userSearchQuery}
+                              onChange={(e) => setUserSearchQuery(e.target.value)}
+                              className="pl-8 w-64"
+                              data-testid="input-search-hotel-owners"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {users.filter(u => u.role === 'HOTEL_OWNER').map((owner) => (
-                          <div key={owner.id} className="flex items-center justify-between p-4 border rounded-lg">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                                <Crown className="w-5 h-5 text-blue-600" />
-                              </div>
-                              <div>
-                                <h4 className="font-medium">{owner.fullName}</h4>
-                                <p className="text-sm text-gray-600">{owner.email}</p>
-                                <div className="flex items-center mt-1 space-x-2">
-                                  <Badge variant="outline">Hotel Owner</Badge>
-                                  {owner.hotelId && (
-                                    <Badge variant="default">
-                                      Hotel Assigned
-                                    </Badge>
-                                  )}
+                      {filteredHotelOwners.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Crown className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500 mb-2">No hotel owners found</p>
+                          <p className="text-sm text-gray-400">
+                            {userSearchQuery 
+                              ? 'Try adjusting your search terms'
+                              : 'Create your first hotel owner to get started'
+                            }
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {filteredHotelOwners.map((owner: any) => {
+                            const ownerHotel = (hotels as any[]).find((h: any) => h.id === owner.hotelId);
+                            return (
+                            <div key={owner.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`hotel-owner-card-${owner.id}`}>
+                              <div className="flex items-center space-x-4">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                  <Crown className="w-5 h-5 text-blue-600" />
+                                </div>
+                                <div>
+                                  <h4 className="font-medium" data-testid={`hotel-owner-name-${owner.id}`}>{owner.fullName}</h4>
+                                  <p className="text-sm text-gray-600" data-testid={`hotel-owner-email-${owner.id}`}>{owner.email}</p>
+                                  <p className="text-xs text-gray-500">@{owner.username}</p>
+                                  {owner.phone && <p className="text-xs text-gray-500">{owner.phone}</p>}
+                                  <div className="flex items-center mt-1 space-x-2">
+                                    <Badge variant="outline">Hotel Owner</Badge>
+                                    {owner.hotelId && ownerHotel ? (
+                                      <Badge variant="default" data-testid={`hotel-assigned-${owner.id}`}>
+                                        {ownerHotel.name}
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="secondary" data-testid={`hotel-unassigned-${owner.id}`}>
+                                        No Hotel Assigned
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex space-x-2">
+                                <Button variant="outline" size="sm" data-testid={`button-view-hotel-owner-${owner.id}`}>
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button variant="outline" size="sm" data-testid={`button-edit-hotel-owner-${owner.id}`}>
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteUser(owner.id, owner.email)}
+                                  data-testid={`button-delete-hotel-owner-${owner.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
                             </div>
-                            <div className="flex space-x-2">
-                              <Button variant="outline" size="sm">
-                                <Eye className="w-4 h-4" />
-                              </Button>
-                              <Button variant="outline" size="sm">
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                          );
+                          })}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -981,35 +1357,75 @@ export default function EnhancedSuperAdminDashboard() {
                 <TabsContent value="staff-directory" className="space-y-4">
                   <Card>
                     <CardHeader>
-                      <CardTitle>All Hotel Staff</CardTitle>
-                      <p className="text-sm text-gray-600">View and manage staff across all hotels</p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>All Hotel Staff ({filteredStaffUsers.length} staff)</CardTitle>
+                          <p className="text-sm text-gray-600">View and manage staff across all hotels</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Search staff..."
+                              value={userSearchQuery}
+                              onChange={(e) => setUserSearchQuery(e.target.value)}
+                              className="pl-8 w-64"
+                              data-testid="input-search-staff"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-4">
-                        {users.filter(u => !['SUPER_ADMIN', 'DEVELOPER_ADMIN', 'SUPPORT', 'HOTEL_OWNER', 'GUEST'].includes(u.role)).map((staff) => {
-                          const hotel = hotels.find(h => h.id === staff.hotelId);
-                          return (
-                            <div key={staff.id} className="flex items-center justify-between p-4 border rounded-lg">
-                              <div className="flex items-center space-x-4">
-                                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                  <Users className="w-5 h-5 text-green-600" />
-                                </div>
-                                <div>
-                                  <h4 className="font-medium">{staff.fullName}</h4>
-                                  <p className="text-sm text-gray-600">{staff.email}</p>
-                                  <div className="flex items-center mt-1 space-x-2">
-                                    <Badge>{staff.role.replace('_', ' ')}</Badge>
-                                    {hotel && <Badge variant="outline">{hotel.name}</Badge>}
+                      {filteredStaffUsers.length === 0 ? (
+                        <div className="text-center py-8">
+                          <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                          <p className="text-gray-500 mb-2">No hotel staff found</p>
+                          <p className="text-sm text-gray-400">
+                            {userSearchQuery 
+                              ? 'Try adjusting your search terms'
+                              : 'Hotel staff are created by Hotel Owners and Managers'
+                            }
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {filteredStaffUsers.map((staff: any) => {
+                            const hotel = (hotels as any[]).find((h: any) => h.id === staff.hotelId);
+                            return (
+                              <div key={staff.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`staff-card-${staff.id}`}>
+                                <div className="flex items-center space-x-4">
+                                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                    <Users className="w-5 h-5 text-green-600" />
+                                  </div>
+                                  <div>
+                                    <h4 className="font-medium" data-testid={`staff-name-${staff.id}`}>{staff.fullName}</h4>
+                                    <p className="text-sm text-gray-600" data-testid={`staff-email-${staff.id}`}>{staff.email}</p>
+                                    <p className="text-xs text-gray-500">@{staff.username}</p>
+                                    <div className="flex items-center mt-1 space-x-2">
+                                      <Badge data-testid={`staff-role-${staff.id}`}>{staff.role.replace('_', ' ')}</Badge>
+                                      {hotel ? (
+                                        <Badge variant="outline" data-testid={`staff-hotel-${staff.id}`}>{hotel.name}</Badge>
+                                      ) : (
+                                        <Badge variant="secondary">No Hotel</Badge>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-red-600"
+                                  onClick={() => handleDeleteUser(staff.id, staff.email)}
+                                  data-testid={`button-delete-staff-${staff.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </TabsContent>

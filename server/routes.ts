@@ -79,6 +79,70 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/admin/users", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Validate input using zod schema
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      const existingUsername = await storage.getUserByUsername(validatedData.username);
+      if (existingUsername) {
+        return res.status(400).json({ message: "Username already taken" });
+      }
+      
+      // Hash password before storing
+      const bcrypt = require('bcrypt');
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      
+      const user = await storage.createUser({
+        ...validatedData,
+        password: hashedPassword
+      });
+      
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      next(error);
+    }
+  });
+
+  app.delete("/api/admin/users/:userId", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { userId } = req.params;
+      
+      // Check if user exists
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Prevent deletion of own account
+      if (userId === req.user?.id) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      await storage.deleteUser(userId);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Super Admin specific routes for enhanced dashboard
   app.get("/api/admin/system-stats", async (req, res, next) => {
     try {
