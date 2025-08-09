@@ -48,7 +48,12 @@ export const rooms = pgTable("rooms", {
   number: varchar("number", { length: 20 }).notNull(),
   label: varchar("label", { length: 100 }),
   type: varchar("type", { length: 50 }).notNull(),
-  status: varchar("status", { length: 50 }).notNull().default("available")
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  capacity: integer("capacity").default(2),
+  amenities: text("amenities").array(),
+  description: text("description"),
+  status: varchar("status", { length: 50 }).notNull().default("available"),
+  createdAt: timestamp("created_at").defaultNow()
 });
 
 export const bookings = pgTable("bookings", {
@@ -57,9 +62,15 @@ export const bookings = pgTable("bookings", {
   roomId: uuid("room_id"),
   guestName: varchar("guest_name", { length: 255 }).notNull(),
   guestEmail: varchar("guest_email", { length: 255 }).notNull(),
+  guestPhone: varchar("guest_phone", { length: 20 }),
   checkinDate: timestamp("checkin_date").notNull(),
   checkoutDate: timestamp("checkout_date").notNull(),
+  numberOfGuests: integer("number_of_guests").default(1),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
+  paymentStatus: varchar("payment_status", { length: 50 }).default("pending"),
+  paymentMethod: varchar("payment_method", { length: 50 }),
   status: varchar("status", { length: 50 }).notNull().default("pending"),
+  specialRequests: text("special_requests"),
   holdExpires: timestamp("hold_expires"),
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -67,10 +78,16 @@ export const bookings = pgTable("bookings", {
 export const generatorLogs = pgTable("generator_logs", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   hotelId: uuid("hotel_id").notNull(),
-  liters: decimal("liters", { precision: 8, scale: 2 }).notNull(),
-  startTime: timestamp("start_time").notNull(),
-  endTime: timestamp("end_time").notNull(),
-  cost: decimal("cost", { precision: 10, scale: 2 }).notNull(),
+  logType: varchar("log_type", { length: 50 }).notNull(), // 'FUEL_PURCHASE', 'USAGE', 'MAINTENANCE'
+  fuelAmount: decimal("fuel_amount", { precision: 8, scale: 2 }),
+  fuelConsumed: decimal("fuel_consumed", { precision: 8, scale: 2 }),
+  hoursRun: decimal("hours_run", { precision: 6, scale: 2 }),
+  costPerLiter: decimal("cost_per_liter", { precision: 8, scale: 2 }),
+  totalCost: decimal("total_cost", { precision: 10, scale: 2 }),
+  supplier: varchar("supplier", { length: 255 }),
+  maintenanceType: varchar("maintenance_type", { length: 50 }),
+  maintenanceNotes: text("maintenance_notes"),
+  recordedBy: uuid("recorded_by"),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -123,6 +140,49 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
     references: [rooms.id]
   })
 }));
+
+// QR Code table for contactless features
+export const qrCodes = pgTable("qr_codes", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  hotelId: uuid("hotel_id").notNull(),
+  roomId: uuid("room_id"),
+  type: varchar("type", { length: 50 }).notNull(), // 'MENU', 'CHECKIN', 'ROOM_SERVICE', 'WIFI'
+  code: varchar("code", { length: 255 }).notNull().unique(),
+  data: text("data"), // JSON data for the QR code
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Payment records
+export const payments = pgTable("payments", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  hotelId: uuid("hotel_id").notNull(),
+  bookingId: uuid("booking_id"),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).default("NGN"),
+  paymentMethod: varchar("payment_method", { length: 50 }).notNull(), // 'PAYSTACK', 'FLUTTERWAVE', 'STRIPE', 'CASH', 'TRANSFER'
+  paymentReference: varchar("payment_reference", { length: 255 }),
+  status: varchar("status", { length: 50 }).default("pending"), // 'pending', 'completed', 'failed', 'refunded'
+  metadata: text("metadata"), // JSON metadata from payment provider
+  processedAt: timestamp("processed_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// WhatsApp/SMS Message logs
+export const messageLogs = pgTable("message_logs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  hotelId: uuid("hotel_id").notNull(),
+  bookingId: uuid("booking_id"),
+  recipient: varchar("recipient", { length: 20 }).notNull(),
+  messageType: varchar("message_type", { length: 50 }).notNull(), // 'WHATSAPP', 'SMS'
+  template: varchar("template", { length: 100 }), // Template used
+  content: text("content").notNull(),
+  status: varchar("status", { length: 50 }).default("pending"), // 'pending', 'sent', 'delivered', 'failed'
+  messageId: varchar("message_id", { length: 255 }), // Provider message ID
+  errorMessage: text("error_message"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow()
+});
 
 export const generatorLogsRelations = relations(generatorLogs, ({ one }) => ({
   hotel: one(hotels, {

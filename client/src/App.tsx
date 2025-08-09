@@ -11,6 +11,8 @@ import HotelOwnerDashboard from "@/pages/hotel-owner-dashboard";
 import TenantDashboard from "@/pages/tenant-dashboard";
 import FrontDeskPWA from "@/pages/front-desk-pwa";
 import GeneratorTracker from "@/pages/generator-tracker";
+import GuestBooking from "@/pages/guest-booking";
+import TenantRoleRouter from "@/pages/tenant-role-router";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -24,6 +26,8 @@ function Router() {
       <ProtectedRoute path="/front-desk" component={FrontDeskPWA} />
       <ProtectedRoute path="/generator" component={GeneratorTracker} />
       {/* Tenant-based routing for {hotel-slug} */}
+      <Route path="/:hotelSlug/book" component={GuestBooking} />
+      <ProtectedRoute path="/:hotelSlug/:role" component={TenantRoleRouter} />
       <Route path="/:hotelSlug" component={TenantDashboard} />
       <Route component={NotFound} />
     </Switch>

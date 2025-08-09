@@ -297,6 +297,26 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/public/hotels/:slug/bookings", async (req, res, next) => {
+    try {
+      const { slug } = req.params;
+      const hotel = await storage.getHotelBySlug(slug);
+      
+      if (!hotel || hotel.status !== 'active') {
+        return res.status(404).json({ message: "Hotel not found or inactive" });
+      }
+
+      const booking = await storage.createBooking({
+        ...req.body,
+        hotelId: hotel.id,
+      });
+      
+      res.status(201).json(booking);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

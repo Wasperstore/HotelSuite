@@ -1,0 +1,200 @@
+
+LuxuryHotelSaaS — Final PRD v2.0
+Date: 2025-08-09
+Status: Approved for Development
+
+1. Product Vision
+LuxuryHotelSaaS is a multi-tenant SaaS hotel management platform with offline-first capabilities, tailored for African hotels and resorts where power and internet instability are common.
+
+It provides:
+
+Super Admin tools for SaaS-level control.
+
+Hotel Owner & Manager dashboards for operations, revenue, and staff.
+
+Guest-facing booking portals with mobile-first and QR features.
+
+Local market differentiators (generator tracking, WhatsApp integration, Paystack/Flutterwave payments).
+
+2. Key Differentiators
+Offline-first Front Desk PWA for unreliable internet.
+
+Integrated Generator/Diesel Tracker to cut costs.
+
+Local payments (Paystack, Flutterwave, Stripe for intl guests).
+
+WhatsApp/SMS guest engagement.
+
+Super-fast onboarding wizard (CSV import + default templates).
+
+Custom domains per hotel with branded portals.
+
+Per-hotel custom role templates.
+
+3. Roles & Secure Routing
+Routing Principle:
+Tenant roles → {hotel-slug}/role (example: /azzarahhotel/manager)
+
+Global roles → /role (example: /super-admin)
+
+Roles:
+Role	Example URL	Scope
+Super Admin	/super-admin	Global SaaS control, billing, system setup
+Developer	/developer	API keys, integrations
+Hotel Owner	/azzarahhotel/owner	Hotel-level control, staff, billing
+Hotel Manager	/azzarahhotel/manager	Rates, rooms, reservations
+Front Desk	/azzarahhotel/frontdesk	Bookings, check-in/out
+Housekeeping	/azzarahhotel/housekeeping	Cleaning, status updates
+Maintenance	/azzarahhotel/maintenance	Repairs, logs
+Restaurant/POS Staff	/azzarahhotel/pos	Orders, bills
+Accountant	/azzarahhotel/accounting	Finance, payroll
+Security	/azzarahhotel/security	Access logs
+IT Admin (Hotel)	/azzarahhotel/itadmin	Technical setup
+Guest	/azzarahhotel	Public booking, profile
+
+4. Database & Architecture
+Multi-tenant, single DB with tenant_id on all tables.
+
+PostgreSQL + Prisma ORM.
+
+RLS (Row-Level Security) in Postgres.
+
+Redis for caching & availability checks.
+
+Backend: Node.js + Express.
+
+Frontend: React (Next.js), Tailwind CSS.
+
+Hosting: Vercel (frontend), Fly.io/Render (backend), Supabase/RDS (DB).
+
+5. Core Features
+5.1 Hotel Owner Creation Flow
+Step 1: Create Owner (unique email across system).
+
+Step 2: Create Hotel & assign to existing Owner (dropdown list).
+
+Rule: Hotel cannot exist without Owner; Owner cannot log in without at least one hotel assigned.
+
+5.2 Guest Experience
+Kiosk mode for self check-in.
+
+QR menu for room service.
+
+Guest dashboard: bookings, invoices, services.
+
+Digital signature on check-in.
+
+5.3 Staff Operations
+Reservation calendar (drag & drop).
+
+Check-in/out process.
+
+Maintenance logs.
+
+Housekeeping status.
+
+Staff punch-in/out.
+
+Diesel usage tracker.
+
+5.4 Reports & Analytics
+Revenue reports.
+
+Occupancy trends.
+
+Staff activity logs.
+
+Booking source reports.
+
+6. Advanced Features (Phase 2)
+OTA iCal sync (Booking.com, Airbnb).
+
+Mobile room key.
+
+Biometric login for staff.
+
+Shift tracking & salary support.
+
+7. Homepage Design
+Goal: Premium, clean, and mobile-friendly — gives confidence to high-end hotels and boutique properties.
+
+Theme & Style
+Primary Color: Deep Royal Blue (#1A237E) — trust & luxury.
+
+Accent Color: Gold (#FFD700) — premium feel.
+
+Background: Light Gray (#F9FAFB).
+
+Font: Inter (sans-serif) for clarity + Playfair Display for headlines.
+
+Buttons: Rounded, shadowed, gold accent hover effect.
+
+Layout
+Hero Section — full-width hotel image, tagline, and CTA.
+
+Example: “Your Hotel, Fully Digital — Offline or Online.”
+
+Background: luxury lobby image with overlay gradient.
+
+Features Section — 3-4 cards with icons & short copy.
+
+How It Works — step-by-step with illustrations.
+
+Pricing Table — Starter, Growth, Pro (see Pricing).
+
+Testimonials — hotel owners' feedback with photos.
+
+Footer — links, contact info, legal.
+
+Image Style
+High-quality, unsplash-style hotel photography.
+
+African hotels & resorts as main visuals.
+
+Warm lighting, clean framing.
+
+8. Pricing Model
+Plan	Rooms	Monthly Fee	Features
+Starter	≤25	₦35,000	Core booking, front desk, payments
+Growth	26–75	₦65,000	+ OTA iCal sync, POS, basic reports
+Pro	75+	₦120,000	+ Generator tracker, kiosk, advanced analytics
+
+Add-ons:
+
+WhatsApp/SMS credits
+
+Custom domain setup: ₦50,000 one-time
+
+Onboarding/training: ₦75,000 one-time
+
+Trial: 30 days free
+
+9. KPIs
+Hotel activation rate.
+
+Direct booking increase %.
+
+Double booking rate.
+
+Avg. check-in time.
+
+Diesel cost savings.
+
+10. Build Sequence
+Role & tenant system with secure routing.
+
+Super Admin dashboard.
+
+Hotel onboarding wizard + CSV import.
+
+Public booking portal.
+
+Front desk PWA (offline mode).
+
+Diesel tracker.
+
+Payments + WhatsApp/SMS.
+
+Homepage + branding.
+
+Pilot hotels launch.
