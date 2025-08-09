@@ -93,78 +93,18 @@ export default function EnhancedSuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
 
-  // Mock data - in real app, this would come from APIs
-  const systemStats: SystemStats = {
-    totalHotels: 47,
-    activeUsers: 234,
-    activeSubscriptions: 42,
-    monthlyRevenue: 2450000, // ₦2.45M
-    supportTicketsPending: 8,
-    apiUptime: 99.9,
-    dbUsage: 67.3
+  // Default values for when API data isn't loaded yet
+  const defaultStats: SystemStats = {
+    totalHotels: 0,
+    activeUsers: 0,
+    activeSubscriptions: 0,
+    monthlyRevenue: 0,
+    supportTicketsPending: 0,
+    apiUptime: 0,
+    dbUsage: 0
   };
 
-  const revenueData: RevenueData[] = [
-    { month: 'Jan', revenue: 1800000, signups: 8 },
-    { month: 'Feb', revenue: 2100000, signups: 12 },
-    { month: 'Mar', revenue: 2450000, signups: 15 },
-  ];
-
-  const supportTickets: SupportTicket[] = [
-    {
-      id: '1',
-      hotelName: 'Lagos Grand Hotel',
-      subject: 'Payment gateway integration issue',
-      priority: 'high',
-      status: 'open',
-      createdAt: new Date(),
-      assignedTo: 'Support Team'
-    },
-    {
-      id: '2',
-      hotelName: 'Abuja Luxury Suites',
-      subject: 'Room booking synchronization problem',
-      priority: 'medium',
-      status: 'pending',
-      createdAt: new Date(Date.now() - 86400000),
-    }
-  ];
-
-  const subscriptionPlans: SubscriptionPlan[] = [
-    {
-      id: '1',
-      name: 'Starter',
-      price: 35000,
-      currency: 'NGN',
-      interval: 'monthly',
-      features: ['Up to 20 rooms', 'Basic reporting', 'Email support'],
-      roomLimit: 20,
-      staffLimit: 5,
-      isActive: true
-    },
-    {
-      id: '2',
-      name: 'Professional',
-      price: 75000,
-      currency: 'NGN',
-      interval: 'monthly',
-      features: ['Up to 100 rooms', 'Advanced analytics', 'Priority support', 'API access'],
-      roomLimit: 100,
-      staffLimit: 25,
-      isActive: true
-    },
-    {
-      id: '3',
-      name: 'Enterprise',
-      price: 120000,
-      currency: 'NGN',
-      interval: 'monthly',
-      features: ['Unlimited rooms', 'Custom integrations', '24/7 support', 'White-label'],
-      roomLimit: -1,
-      staffLimit: -1,
-      isActive: true
-    }
-  ];
+  const stats = systemStats || defaultStats;
 
   const { data: hotels = [] } = useQuery({
     queryKey: ["/api/admin/hotels"],
@@ -172,6 +112,26 @@ export default function EnhancedSuperAdminDashboard() {
 
   const { data: users = [] } = useQuery({
     queryKey: ["/api/admin/users"],
+  });
+
+  // Fetch system statistics
+  const { data: systemStats } = useQuery({
+    queryKey: ["/api/admin/system-stats"],
+  });
+
+  // Fetch revenue data
+  const { data: revenueData = [] } = useQuery({
+    queryKey: ["/api/admin/revenue-data"],
+  });
+
+  // Fetch support tickets
+  const { data: supportTickets = [] } = useQuery({
+    queryKey: ["/api/admin/support-tickets"],
+  });
+
+  // Fetch subscription plans
+  const { data: subscriptionPlans = [] } = useQuery({
+    queryKey: ["/api/admin/subscription-plans"],
   });
 
   const getPriorityColor = (priority: string) => {
@@ -332,7 +292,7 @@ export default function EnhancedSuperAdminDashboard() {
                       <Building className="h-8 w-8 text-blue-600" />
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-600">Total Hotels</p>
-                        <p className="text-2xl font-bold text-gray-900">{systemStats.totalHotels}</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.totalHotels}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -344,7 +304,7 @@ export default function EnhancedSuperAdminDashboard() {
                       <Users className="h-8 w-8 text-green-600" />
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-600">Active Users</p>
-                        <p className="text-2xl font-bold text-gray-900">{systemStats.activeUsers}</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.activeUsers}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -356,7 +316,7 @@ export default function EnhancedSuperAdminDashboard() {
                       <Crown className="h-8 w-8 text-purple-600" />
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-600">Subscriptions</p>
-                        <p className="text-2xl font-bold text-gray-900">{systemStats.activeSubscriptions}</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.activeSubscriptions}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -368,7 +328,7 @@ export default function EnhancedSuperAdminDashboard() {
                       <DollarSign className="h-8 w-8 text-yellow-600" />
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                        <p className="text-2xl font-bold text-gray-900">₦{(systemStats.monthlyRevenue / 1000000).toFixed(1)}M</p>
+                        <p className="text-2xl font-bold text-gray-900">₦{(stats.monthlyRevenue / 1000000).toFixed(1)}M</p>
                       </div>
                     </div>
                   </CardContent>
@@ -380,7 +340,7 @@ export default function EnhancedSuperAdminDashboard() {
                       <AlertTriangle className="h-8 w-8 text-red-600" />
                       <div className="ml-4">
                         <p className="text-sm font-medium text-gray-600">Support Tickets</p>
-                        <p className="text-2xl font-bold text-gray-900">{systemStats.supportTicketsPending}</p>
+                        <p className="text-2xl font-bold text-gray-900">{stats.supportTicketsPending}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -425,7 +385,7 @@ export default function EnhancedSuperAdminDashboard() {
                         <span>API Uptime</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-medium">{systemStats.apiUptime}%</span>
+                        <span className="font-medium">{stats.apiUptime}%</span>
                         <CheckCircle className="w-4 h-4 ml-2 text-green-600" />
                       </div>
                     </div>
@@ -436,11 +396,11 @@ export default function EnhancedSuperAdminDashboard() {
                         <span>Database Usage</span>
                       </div>
                       <div className="flex items-center">
-                        <span className="font-medium">{systemStats.dbUsage}%</span>
+                        <span className="font-medium">{stats.dbUsage}%</span>
                         <div className="w-20 h-2 bg-gray-200 rounded-full ml-2">
                           <div 
                             className="h-2 bg-blue-600 rounded-full" 
-                            style={{ width: `${systemStats.dbUsage}%` }}
+                            style={{ width: `${stats.dbUsage}%` }}
                           ></div>
                         </div>
                       </div>
@@ -509,59 +469,310 @@ export default function EnhancedSuperAdminDashboard() {
                 </div>
               </div>
 
-              {/* Support Tickets */}
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Support Tickets</CardTitle>
-                    <div className="flex items-center space-x-2">
-                      <Select value={selectedFilter} onValueChange={setSelectedFilter}>
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Status</SelectItem>
-                          <SelectItem value="open">Open</SelectItem>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="closed">Closed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {supportTickets.map((ticket) => (
-                      <div key={ticket.id} className="border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-medium">{ticket.subject}</h4>
-                            <Badge className={getPriorityColor(ticket.priority)}>
-                              {ticket.priority}
-                            </Badge>
-                            <Badge className={getStatusColor(ticket.status)}>
-                              {ticket.status}
-                            </Badge>
-                          </div>
-                          <div className="flex space-x-1">
-                            <Button variant="outline" size="sm">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-1">Hotel: {ticket.hotelName}</p>
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>Created: {ticket.createdAt.toLocaleDateString()}</span>
-                          {ticket.assignedTo && <span>Assigned to: {ticket.assignedTo}</span>}
+              <Tabs defaultValue="tickets">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="tickets">Support Tickets</TabsTrigger>
+                  <TabsTrigger value="announcements">Announcements</TabsTrigger>
+                  <TabsTrigger value="audit">Audit Logs</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="tickets" className="space-y-4">
+
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>Support Tickets</CardTitle>
+                        <div className="flex items-center space-x-2">
+                          <Select value={selectedFilter} onValueChange={setSelectedFilter}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Status</SelectItem>
+                              <SelectItem value="open">Open</SelectItem>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="closed">Closed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="sm">
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Assign Support Staff
+                          </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {supportTickets.map((ticket) => (
+                          <div key={ticket.id} className="border rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <h4 className="font-medium">{ticket.subject}</h4>
+                                <Badge className={getPriorityColor(ticket.priority)}>
+                                  {ticket.priority}
+                                </Badge>
+                                <Badge className={getStatusColor(ticket.status)}>
+                                  {ticket.status}
+                                </Badge>
+                              </div>
+                              <div className="flex space-x-1">
+                                <Button variant="outline" size="sm">
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                <Button variant="outline" size="sm">
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Select>
+                                  <SelectTrigger className="w-24">
+                                    <SelectValue placeholder="Assign" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="support1">Support Team</SelectItem>
+                                    <SelectItem value="support2">Tech Support</SelectItem>
+                                    <SelectItem value="support3">Billing Support</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-1">Hotel: {ticket.hotelName}</p>
+                            <div className="flex items-center justify-between text-xs text-gray-500">
+                              <span>Created: {ticket.createdAt.toLocaleDateString()}</span>
+                              {ticket.assignedTo && <span>Assigned to: {ticket.assignedTo}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="announcements" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>System Announcements</CardTitle>
+                        <Button>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Create Announcement
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="default">System Update</Badge>
+                            <div className="flex space-x-2">
+                              <span className="text-xs text-gray-500">Active</span>
+                              <Button variant="outline" size="sm">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <h4 className="font-medium mb-2">New Payment Integration Features</h4>
+                          <p className="text-sm text-gray-600 mb-2">
+                            Stripe integration now available for international hotels. Enhanced payment processing with multi-currency support.
+                          </p>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>Published: 2 days ago</span>
+                            <span>Sent to: 47 hotels</span>
+                          </div>
+                        </div>
+
+                        <div className="p-4 border rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <Badge variant="secondary">Feature Release</Badge>
+                            <div className="flex space-x-2">
+                              <span className="text-xs text-gray-500">Draft</span>
+                              <Button variant="outline" size="sm">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <h4 className="font-medium mb-2">Mobile Room Key System Available</h4>
+                          <p className="text-sm text-gray-600 mb-2">
+                            QR-based digital room access for enhanced guest experience. Contactless check-in now possible.
+                          </p>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>Created: 1 week ago</span>
+                            <Button variant="outline" size="sm">Publish Now</Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Email Newsletter Management</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Card>
+                          <CardContent className="p-4 text-center">
+                            <Mail className="w-8 h-8 mx-auto mb-2 text-blue-600" />
+                            <p className="font-medium">Monthly Newsletter</p>
+                            <p className="text-sm text-gray-600">47 recipients</p>
+                            <Button size="sm" className="mt-2">Send Now</Button>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4 text-center">
+                            <Bell className="w-8 h-8 mx-auto mb-2 text-green-600" />
+                            <p className="font-medium">Feature Updates</p>
+                            <p className="text-sm text-gray-600">42 subscribers</p>
+                            <Button size="sm" className="mt-2" variant="outline">Schedule</Button>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardContent className="p-4 text-center">
+                            <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-orange-600" />
+                            <p className="font-medium">Critical Updates</p>
+                            <p className="text-sm text-gray-600">All hotels</p>
+                            <Button size="sm" className="mt-2" variant="outline">Draft</Button>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="audit" className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>System Audit Logs</CardTitle>
+                          <p className="text-sm text-gray-600">Track every system change by any user</p>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="sm">
+                            <Filter className="w-4 h-4 mr-2" />
+                            Advanced Filters
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Download className="w-4 h-4 mr-2" />
+                            Export Logs
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {[
+                          {
+                            id: '1',
+                            action: 'Hotel Created',
+                            user: 'Super Admin',
+                            userEmail: 'admin@luxuryhotelsaas.com',
+                            target: 'Lagos Grand Hotel',
+                            timestamp: new Date(Date.now() - 3600000),
+                            details: 'Created new hotel with 25 rooms, assigned to john.doe@email.com',
+                            ip: '192.168.1.1'
+                          },
+                          {
+                            id: '2',
+                            action: 'User Role Changed',
+                            user: 'Super Admin',
+                            userEmail: 'admin@luxuryhotelsaas.com',
+                            target: 'john.doe@hotel.com',
+                            timestamp: new Date(Date.now() - 7200000),
+                            details: 'Changed role from FRONT_DESK to HOTEL_MANAGER',
+                            ip: '192.168.1.1'
+                          },
+                          {
+                            id: '3',
+                            action: 'Payment Processed',
+                            user: 'System',
+                            userEmail: 'system@luxuryhotelsaas.com',
+                            target: 'Abuja Luxury Suites',
+                            timestamp: new Date(Date.now() - 10800000),
+                            details: 'Monthly subscription payment ₦75,000 via Paystack',
+                            ip: 'webhook'
+                          },
+                          {
+                            id: '4',
+                            action: 'API Key Updated',
+                            user: 'Developer Admin',
+                            userEmail: 'dev@luxuryhotelsaas.com',
+                            target: 'Paystack Integration',
+                            timestamp: new Date(Date.now() - 14400000),
+                            details: 'Updated Paystack secret key for production environment',
+                            ip: '10.0.0.45'
+                          },
+                          {
+                            id: '5',
+                            action: 'Subscription Plan Modified',
+                            user: 'Super Admin',
+                            userEmail: 'admin@luxuryhotelsaas.com',
+                            target: 'Professional Plan',
+                            timestamp: new Date(Date.now() - 18000000),
+                            details: 'Updated room limit from 75 to 100, price unchanged',
+                            ip: '192.168.1.1'
+                          }
+                        ].map((log) => (
+                          <div key={log.id} className="border rounded-lg p-4">
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start space-x-4">
+                                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <FileText className="w-5 h-5 text-purple-600" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <h4 className="font-medium">{log.action}</h4>
+                                    <Badge 
+                                      variant={
+                                        log.action.includes('Created') ? 'default' :
+                                        log.action.includes('Updated') || log.action.includes('Modified') ? 'secondary' :
+                                        log.action.includes('Payment') ? 'outline' : 'destructive'
+                                      }
+                                    >
+                                      {log.user}
+                                    </Badge>
+                                  </div>
+                                  <p className="text-sm text-gray-600 mb-1">
+                                    <span className="font-medium">{log.user}</span> ({log.userEmail}) → {log.target}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mb-2">{log.details}</p>
+                                  <div className="flex items-center space-x-4 text-xs text-gray-400">
+                                    <span>IP: {log.ip}</span>
+                                    <span>•</span>
+                                    <span>{log.timestamp.toLocaleString()}</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="sm">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-4 border-t">
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm">Previous</Button>
+                          <span className="text-sm text-gray-600">Page 1 of 24</span>
+                          <Button variant="outline" size="sm">Next</Button>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">Show:</span>
+                          <Select defaultValue="10">
+                            <SelectTrigger className="w-20">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="10">10</SelectItem>
+                              <SelectItem value="25">25</SelectItem>
+                              <SelectItem value="50">50</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
             </div>
           )}
 

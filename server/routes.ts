@@ -79,6 +79,152 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Super Admin specific routes for enhanced dashboard
+  app.get("/api/admin/system-stats", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const hotels = await storage.getAllHotels();
+      const users = await storage.getAllUsers();
+      
+      // Calculate system statistics
+      const stats = {
+        totalHotels: hotels.length,
+        activeUsers: users.filter(u => u.role !== 'GUEST').length,
+        activeSubscriptions: hotels.filter(h => h.status === 'active').length,
+        monthlyRevenue: 2450000, // This would come from payments table in real implementation
+        supportTicketsPending: 8, // This would come from support tickets table
+        apiUptime: 99.9,
+        dbUsage: 67.3
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/admin/revenue-data", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Mock revenue data - in real app this would come from payments/subscriptions tables
+      const revenueData = [
+        { month: 'Jan', revenue: 1800000, signups: 8 },
+        { month: 'Feb', revenue: 2100000, signups: 12 },
+        { month: 'Mar', revenue: 2450000, signups: 15 },
+      ];
+      
+      res.json(revenueData);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/admin/support-tickets", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Mock support tickets - in real app this would come from support_tickets table
+      const tickets = [
+        {
+          id: '1',
+          hotelName: 'Lagos Grand Hotel',
+          subject: 'Payment gateway integration issue',
+          priority: 'high',
+          status: 'open',
+          createdAt: new Date(),
+          assignedTo: 'Support Team'
+        },
+        {
+          id: '2',
+          hotelName: 'Abuja Luxury Suites',
+          subject: 'Room booking synchronization problem',
+          priority: 'medium',
+          status: 'pending',
+          createdAt: new Date(Date.now() - 86400000),
+        }
+      ];
+      
+      res.json(tickets);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/admin/support-tickets/:ticketId/assign", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { ticketId } = req.params;
+      const { assignedTo } = req.body;
+      
+      // In real app, update support ticket assignment
+      console.log(`Assigned ticket ${ticketId} to ${assignedTo}`);
+      
+      res.json({ success: true, message: "Ticket assigned successfully" });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/admin/subscription-plans", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Mock subscription plans - in real app this would come from subscription_plans table
+      const plans = [
+        {
+          id: '1',
+          name: 'Starter',
+          price: 35000,
+          currency: 'NGN',
+          interval: 'monthly',
+          features: ['Up to 20 rooms', 'Basic reporting', 'Email support'],
+          roomLimit: 20,
+          staffLimit: 5,
+          isActive: true
+        },
+        {
+          id: '2',
+          name: 'Professional',
+          price: 75000,
+          currency: 'NGN',
+          interval: 'monthly',
+          features: ['Up to 100 rooms', 'Advanced analytics', 'Priority support', 'API access'],
+          roomLimit: 100,
+          staffLimit: 25,
+          isActive: true
+        },
+        {
+          id: '3',
+          name: 'Enterprise',
+          price: 120000,
+          currency: 'NGN',
+          interval: 'monthly',
+          features: ['Unlimited rooms', 'Custom integrations', '24/7 support', 'White-label'],
+          roomLimit: -1,
+          staffLimit: -1,
+          isActive: true
+        }
+      ];
+      
+      res.json(plans);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // OTA iCal sync routes
   app.get("/api/hotels/:hotelId/ical", async (req, res, next) => {
     try {
