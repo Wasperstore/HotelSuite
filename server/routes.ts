@@ -167,6 +167,104 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Hotel Owner/Manager Routes for Room and Staff Management
+  app.get("/api/hotels/:hotelId", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const { hotelId } = req.params;
+      
+      // Check if user has access to this hotel
+      if (req.user?.hotelId !== hotelId && req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const hotel = await storage.getHotel(hotelId);
+      if (!hotel) {
+        return res.status(404).json({ message: "Hotel not found" });
+      }
+
+      res.json(hotel);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/hotels/:hotelId/rooms", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const { hotelId } = req.params;
+      
+      // Check if user has permission to create rooms for this hotel
+      if (req.user?.hotelId !== hotelId && req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const room = await storage.createRoom({
+        ...req.body,
+        hotelId,
+        status: 'available'
+      });
+      
+      res.status(201).json(room);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.get("/api/hotels/:hotelId/staff", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const { hotelId } = req.params;
+      
+      // Check if user has access to this hotel
+      if (req.user?.hotelId !== hotelId && req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const staff = await storage.getUsersByHotel(hotelId);
+      res.json(staff);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/hotels/:hotelId/staff", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) return res.sendStatus(401);
+      
+      const { hotelId } = req.params;
+      
+      // Check if user has permission to create staff for this hotel
+      if (req.user?.hotelId !== hotelId && req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN") {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      // Hash the PIN code for authentication
+      const { scrypt, randomBytes } = require('crypto');
+      const { promisify } = require('util');
+      const scryptAsync = promisify(scrypt);
+      
+      const salt = randomBytes(16).toString('hex');
+      const buf = await scryptAsync(req.body.pinCode, salt, 64);
+      const pinHash = `${buf.toString('hex')}.${salt}`;
+
+      const staff = await storage.createUser({
+        ...req.body,
+        hotelId,
+        pinHash,
+        passwordHash: pinHash, // Use PIN as password initially
+        forcePasswordReset: false
+      });
+      
+      res.status(201).json(staff);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   // Public booking routes (for guest bookings)
   app.get("/api/public/hotels/:slug", async (req, res, next) => {
     try {

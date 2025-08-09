@@ -1,195 +1,314 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/use-auth";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Building, Users, TrendingUp, Settings, Plus, Calendar, Bed, UserPlus, Mail, Hotel as HotelIcon, BarChart3, Clock, DollarSign } from "lucide-react";
+import { 
+  Building, 
+  Users, 
+  Calendar, 
+  TrendingUp, 
+  Settings, 
+  Plus, 
+  Search, 
+  Filter, 
+  MoreHorizontal, 
+  Hotel as HotelIcon, 
+  BarChart3, 
+  UserPlus, 
+  Building2,
+  Bed,
+  DollarSign,
+  Clock,
+  Fuel,
+  Wifi,
+  WifiOff,
+  QrCode,
+  MessageSquare
+} from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Hotel, Room, Booking, User } from "@shared/schema";
+import { useAuth } from "@/hooks/use-auth";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import type { Hotel, Room, Booking, GeneratorLog, User } from "@shared/schema";
+import { useState, useEffect } from "react";
 
-const inviteStaffSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  fullName: z.string().min(2, "Full name must be at least 2 characters"),
-  role: z.enum(["HOTEL_MANAGER", "FRONT_DESK", "HOUSEKEEPING", "MAINTENANCE", "ACCOUNTING", "POS_STAFF"])
+const createRoomSchema = z.object({
+  number: z.string().min(1, "Room number is required"),
+  type: z.enum(["STANDARD", "DELUXE", "SUITE", "PRESIDENTIAL"]),
+  price: z.number().min(0, "Price must be positive"),
+  capacity: z.number().min(1, "Capacity must be at least 1"),
+  amenities: z.string().optional(),
 });
 
-type InviteStaffData = z.infer<typeof inviteStaffSchema>;
+const createStaffSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  fullName: z.string().min(2, "Full name must be at least 2 characters"),
+  role: z.enum(["HOTEL_MANAGER", "FRONT_DESK", "HOUSEKEEPING", "MAINTENANCE", "ACCOUNTING", "POS_STAFF"]),
+  pinCode: z.string().length(4, "PIN must be 4 digits").regex(/^\d+$/, "PIN must contain only numbers"),
+});
 
-const sidebarItems = [
-  { icon: BarChart3, label: "Dashboard", href: "/owner", active: true },
-  { icon: Bed, label: "Rooms", href: "/owner/rooms", active: false },
-  { icon: Calendar, label: "Bookings", href: "/owner/bookings", active: false },
-  { icon: Users, label: "Staff", href: "/owner/staff", active: false },
-  { icon: TrendingUp, label: "Analytics", href: "/owner/analytics", active: false },
-  { icon: Settings, label: "Settings", href: "/owner/settings", active: false }
-];
+type CreateRoomData = z.infer<typeof createRoomSchema>;
+type CreateStaffData = z.infer<typeof createStaffSchema>;
 
 export default function HotelOwnerDashboard() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
-  const [inviteStaffOpen, setInviteStaffOpen] = useState(false);
+  const [showCreateRoom, setShowCreateRoom] = useState(false);
+  const [showCreateStaff, setShowCreateStaff] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
-  const { data: hotel } = useQuery<Hotel>({
-    queryKey: ["/api/hotels", user?.hotelId],
-    enabled: !!user?.hotelId
+  // Check if user has assigned hotel
+  const userHotel = user?.hotelId;
+
+  // Fetch hotel data
+  const { data: hotel, isLoading: hotelLoading } = useQuery<Hotel>({
+    queryKey: ["/api/hotels", userHotel],
+    enabled: !!userHotel,
   });
 
-  const { data: rooms } = useQuery<Room[]>({
-    queryKey: ["/api/hotels", user?.hotelId, "rooms"],
-    enabled: !!user?.hotelId
+  // Fetch rooms for this hotel
+  const { data: rooms, isLoading: roomsLoading } = useQuery<Room[]>({
+    queryKey: ["/api/hotels", userHotel, "rooms"],
+    enabled: !!userHotel,
   });
 
-  const { data: bookings } = useQuery<Booking[]>({
-    queryKey: ["/api/hotels", user?.hotelId, "bookings"],
-    enabled: !!user?.hotelId
+  // Fetch bookings for this hotel
+  const { data: bookings, isLoading: bookingsLoading } = useQuery<Booking[]>({
+    queryKey: ["/api/hotels", userHotel, "bookings"],
+    enabled: !!userHotel,
   });
 
-  const inviteStaffMutation = useMutation({
-    mutationFn: async (data: InviteStaffData) => {
-      // This would normally send an email invitation
-      const res = await apiRequest("POST", "/api/register", {
+  // Fetch generator logs
+  const { data: generatorLogs, isLoading: generatorLoading } = useQuery<GeneratorLog[]>({
+    queryKey: ["/api/hotels", userHotel, "generator-logs"],
+    enabled: !!userHotel,
+  });
+
+  // Fetch hotel staff
+  const { data: staff, isLoading: staffLoading } = useQuery<User[]>({
+    queryKey: ["/api/hotels", userHotel, "staff"],
+    enabled: !!userHotel,
+  });
+
+  const roomForm = useForm<CreateRoomData>({
+    resolver: zodResolver(createRoomSchema),
+    defaultValues: {
+      number: "",
+      type: "STANDARD",
+      price: 0,
+      capacity: 1,
+      amenities: "",
+    }
+  });
+
+  const staffForm = useForm<CreateStaffData>({
+    resolver: zodResolver(createStaffSchema),
+    defaultValues: {
+      email: "",
+      fullName: "",
+      role: "FRONT_DESK",
+      pinCode: "",
+    }
+  });
+
+  const createRoomMutation = useMutation({
+    mutationFn: async (data: CreateRoomData) => {
+      const res = await apiRequest("POST", `/api/hotels/${userHotel}/rooms`, data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hotels", userHotel, "rooms"] });
+      setShowCreateRoom(false);
+      roomForm.reset();
+      toast({
+        title: "Success",
+        description: "Room created successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createStaffMutation = useMutation({
+    mutationFn: async (data: CreateStaffData) => {
+      const res = await apiRequest("POST", `/api/hotels/${userHotel}/staff`, {
         ...data,
-        hotelId: user?.hotelId,
-        forcePasswordReset: true,
-        passwordHash: "temp-password-hash"
+        hotelId: userHotel,
       });
       return await res.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/hotels", userHotel, "staff"] });
+      setShowCreateStaff(false);
+      staffForm.reset();
       toast({
-        title: "Staff invitation sent",
-        description: "The staff member will receive an email to set up their account.",
+        title: "Success",
+        description: "Staff member created successfully",
       });
-      setInviteStaffOpen(false);
-      form.reset();
     },
     onError: (error: Error) => {
       toast({
-        title: "Failed to send invitation",
+        title: "Error",
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
-  const form = useForm<InviteStaffData>({
-    resolver: zodResolver(inviteStaffSchema),
-    defaultValues: {
-      email: "",
-      fullName: "",
-      role: "FRONT_DESK"
-    }
-  });
+  const onCreateRoom = (data: CreateRoomData) => {
+    createRoomMutation.mutate(data);
+  };
 
-  const onInviteStaff = (data: InviteStaffData) => {
-    inviteStaffMutation.mutate(data);
+  const onCreateStaff = (data: CreateStaffData) => {
+    createStaffMutation.mutate(data);
   };
 
   const handleLogout = () => {
     logoutMutation.mutate();
   };
 
-  if (user?.role !== "HOTEL_OWNER") {
+  // Handle offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  if (!userHotel) {
     return (
-      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Access Denied</CardTitle>
-            <CardDescription>
-              You don't have permission to access the Hotel Owner dashboard.
-            </CardDescription>
+          <CardHeader className="text-center">
+            <CardTitle className="text-red-600">No Hotel Assigned</CardTitle>
           </CardHeader>
+          <CardContent className="text-center">
+            <p className="text-gray-600 mb-4">
+              You haven't been assigned to a hotel yet. Please contact your system administrator.
+            </p>
+            <Button onClick={handleLogout} variant="outline">
+              Logout
+            </Button>
+          </CardContent>
         </Card>
       </div>
     );
   }
 
-  if (!user?.hotelId) {
-    return (
-      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>No Hotel Assigned</CardTitle>
-            <CardDescription>
-              You haven't been assigned to a hotel yet. Please contact the super admin.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
-    );
-  }
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
-  const todayBookings = bookings?.filter(booking => {
-    const today = new Date().toISOString().split('T')[0];
-    const checkinDate = new Date(booking.checkinDate).toISOString().split('T')[0];
-    return checkinDate === today;
-  }) || [];
-
-  const occupiedRooms = bookings?.filter(booking => booking.status === "confirmed").length || 0;
+  const occupiedRooms = rooms?.filter(room => room.status === 'occupied').length || 0;
   const totalRooms = rooms?.length || 0;
-  const occupancyRate = totalRooms > 0 ? ((occupiedRooms / totalRooms) * 100).toFixed(1) : "0";
+  const occupancyRate = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+  const todayBookings = bookings?.filter(booking => 
+    new Date(booking.checkinDate).toDateString() === new Date().toDateString()
+  ).length || 0;
+
+  const monthlyRevenue = bookings?.reduce((total, booking) => {
+    const bookingMonth = booking.createdAt ? new Date(booking.createdAt).getMonth() : new Date().getMonth();
+    const currentMonth = new Date().getMonth();
+    return bookingMonth === currentMonth ? total + (booking.totalAmount || 0) : total;
+  }, 0) || 0;
 
   return (
-    <div className="min-h-screen bg-bg-primary flex">
+    <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
       <div className="w-64 bg-gray-900 text-white">
         <div className="p-6">
-          <div className="flex items-center space-x-2 mb-2">
-            <div className="w-8 h-8 gradient-brand rounded-lg flex items-center justify-center">
+          <div className="flex items-center space-x-2 mb-8">
+            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <HotelIcon className="text-white text-sm" />
             </div>
-            <span className="font-semibold">Hotel Owner</span>
+            <div>
+              <span className="font-semibold block">{hotel?.name}</span>
+              <span className="text-xs text-gray-400">Hotel Owner</span>
+            </div>
           </div>
-          {hotel && (
-            <p className="text-xs text-gray-400 mb-6">{hotel.name}</p>
-          )}
           
-          <nav className="space-y-3">
-            {sidebarItems.map((item, index) => {
-              const IconComponent = item.icon;
-              return (
-                <button
-                  key={index}
-                  className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-left transition-colors ${
-                    item.active
-                      ? "text-white bg-brand-red"
-                      : "text-gray-300 hover:text-white hover:bg-gray-800"
-                  }`}
-                  data-testid={`sidebar-${item.label.toLowerCase().replace(' ', '-')}`}
-                >
-                  <IconComponent className="text-sm" />
-                  <span className="text-sm">{item.label}</span>
-                </button>
-              );
-            })}
+          {/* Offline Status Indicator */}
+          <div className={`flex items-center space-x-2 p-2 rounded mb-4 ${
+            isOffline ? 'bg-red-600' : 'bg-green-600'
+          }`}>
+            {isOffline ? <WifiOff className="w-4 h-4" /> : <Wifi className="w-4 h-4" />}
+            <span className="text-sm">
+              {isOffline ? 'Offline Mode' : 'Online'}
+            </span>
+          </div>
+          
+          <nav className="space-y-2">
+            <a href="#" className="flex items-center space-x-2 p-2 rounded bg-gray-800 text-white">
+              <BarChart3 className="w-4 h-4" />
+              <span>Dashboard</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <Bed className="w-4 h-4" />
+              <span>Rooms</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <Calendar className="w-4 h-4" />
+              <span>Bookings</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <Users className="w-4 h-4" />
+              <span>Staff</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <Fuel className="w-4 h-4" />
+              <span>Generator</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <QrCode className="w-4 h-4" />
+              <span>QR Features</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <MessageSquare className="w-4 h-4" />
+              <span>WhatsApp</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <TrendingUp className="w-4 h-4" />
+              <span>Analytics</span>
+            </a>
+            <a href="#" className="flex items-center space-x-2 p-2 rounded hover:bg-gray-800">
+              <Settings className="w-4 h-4" />
+              <span>Settings</span>
+            </a>
           </nav>
         </div>
-
-        <div className="absolute bottom-0 left-0 right-0 w-64 p-6 border-t border-gray-800">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-8 h-8 bg-brand-red rounded-full flex items-center justify-center text-white font-semibold text-sm">
-              {user?.fullName?.charAt(0) || user?.email?.charAt(0) || "O"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user?.fullName || "Owner"}</p>
-              <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-            </div>
+        
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="flex items-center space-x-2 p-2 text-sm">
+            <div className="w-6 h-6 bg-gray-600 rounded-full"></div>
+            <span className="text-gray-300">{user?.fullName}</span>
           </div>
           <Button
             onClick={handleLogout}
             variant="ghost"
-            className="w-full text-gray-300 hover:text-white hover:bg-gray-800"
-            data-testid="button-logout"
+            size="sm"
+            className="w-full text-gray-300 hover:text-white mt-2"
           >
             Logout
           </Button>
@@ -197,48 +316,135 @@ export default function HotelOwnerDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="p-8">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-3xl font-bold text-text-primary mb-2" data-testid="dashboard-title">
-                {hotel?.name || "Hotel Dashboard"}
-              </h1>
-              <p className="text-gray-600">Manage your hotel operations and staff</p>
-            </div>
-            
-            <Dialog open={inviteStaffOpen} onOpenChange={setInviteStaffOpen}>
+      <div className="flex-1 p-6">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Hotel Dashboard</h1>
+            <p className="text-gray-600">{currentDate}</p>
+          </div>
+          <div className="flex space-x-2">
+            <Dialog open={showCreateRoom} onOpenChange={setShowCreateRoom}>
               <DialogTrigger asChild>
-                <Button className="gradient-brand" data-testid="button-invite-staff">
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Invite Staff
+                <Button data-testid="button-create-room">
+                  <Bed className="w-4 h-4 mr-2" />
+                  Add Room
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Invite Staff Member</DialogTitle>
-                  <DialogDescription>
-                    Send an invitation email to a new staff member. They'll be required to set up their password on first login.
-                  </DialogDescription>
+                  <DialogTitle>Create New Room</DialogTitle>
                 </DialogHeader>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onInviteStaff)} className="space-y-4">
+                <Form {...roomForm}>
+                  <form onSubmit={roomForm.handleSubmit(onCreateRoom)} className="space-y-4">
                     <FormField
-                      control={form.control}
-                      name="email"
+                      control={roomForm.control}
+                      name="number"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email Address</FormLabel>
+                          <FormLabel>Room Number</FormLabel>
                           <FormControl>
-                            <Input {...field} type="email" data-testid="input-staff-email" />
+                            <Input {...field} data-testid="input-room-number" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={roomForm.control}
+                      name="type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Room Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-room-type">
+                                <SelectValue placeholder="Select room type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="STANDARD">Standard</SelectItem>
+                              <SelectItem value="DELUXE">Deluxe</SelectItem>
+                              <SelectItem value="SUITE">Suite</SelectItem>
+                              <SelectItem value="PRESIDENTIAL">Presidential</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={roomForm.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price per Night (₦)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field} 
+                              onChange={e => field.onChange(parseFloat(e.target.value))}
+                              data-testid="input-room-price" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={roomForm.control}
+                      name="capacity"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Capacity (Guests)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              {...field} 
+                              onChange={e => field.onChange(parseInt(e.target.value))}
+                              data-testid="input-room-capacity" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" disabled={createRoomMutation.isPending} data-testid="button-submit-room">
+                      {createRoomMutation.isPending ? "Creating..." : "Create Room"}
+                    </Button>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={showCreateStaff} onOpenChange={setShowCreateStaff}>
+              <DialogTrigger asChild>
+                <Button variant="outline" data-testid="button-create-staff">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Add Staff
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Create Staff Member</DialogTitle>
+                </DialogHeader>
+                <Form {...staffForm}>
+                  <form onSubmit={staffForm.handleSubmit(onCreateStaff)} className="space-y-4">
+                    <FormField
+                      control={staffForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-staff-email" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={staffForm.control}
                       name="fullName"
                       render={({ field }) => (
                         <FormItem>
@@ -251,15 +457,15 @@ export default function HotelOwnerDashboard() {
                       )}
                     />
                     <FormField
-                      control={form.control}
+                      control={staffForm.control}
                       name="role"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Role</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value}>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-staff-role">
-                                <SelectValue />
+                                <SelectValue placeholder="Select role" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -275,158 +481,189 @@ export default function HotelOwnerDashboard() {
                         </FormItem>
                       )}
                     />
-                    <div className="flex justify-end space-x-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setInviteStaffOpen(false)}
-                        data-testid="button-cancel"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        type="submit"
-                        className="gradient-brand"
-                        disabled={inviteStaffMutation.isPending}
-                        data-testid="button-invite"
-                      >
-                        {inviteStaffMutation.isPending ? "Sending..." : "Send Invitation"}
-                      </Button>
-                    </div>
+                    <FormField
+                      control={staffForm.control}
+                      name="pinCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>4-Digit PIN Code</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              maxLength={4}
+                              placeholder="1234"
+                              data-testid="input-staff-pin" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="submit" disabled={createStaffMutation.isPending} data-testid="button-submit-staff">
+                      {createStaffMutation.isPending ? "Creating..." : "Create Staff"}
+                    </Button>
                   </form>
                 </Form>
               </DialogContent>
             </Dialog>
           </div>
+        </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card data-testid="stat-occupancy">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Occupancy Rate</p>
-                    <p className="text-3xl font-bold text-text-primary">{occupancyRate}%</p>
-                    <p className="text-sm text-gray-500">{occupiedRooms} of {totalRooms} rooms</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Bed className="text-blue-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium" data-testid="text-occupancy-rate">
+                Occupancy Rate
+              </CardTitle>
+              <Building className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="text-occupancy-percent">
+                {occupancyRate}%
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {occupiedRooms} of {totalRooms} rooms occupied
+              </p>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium" data-testid="text-todays-checkins">
+                Today's Check-ins
+              </CardTitle>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="text-checkins-count">
+                {todayBookings}
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card data-testid="stat-checkins">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Today's Check-ins</p>
-                    <p className="text-3xl font-bold text-text-primary">{todayBookings.length}</p>
-                    <p className="text-sm text-success">On schedule</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="text-success" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium" data-testid="text-monthly-revenue">
+                Monthly Revenue
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold" data-testid="text-revenue-amount">
+                ₦{monthlyRevenue.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card data-testid="stat-revenue">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                    <p className="text-3xl font-bold text-text-primary">$12,450</p>
-                    <p className="text-sm text-success">+18% vs last month</p>
-                  </div>
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <DollarSign className="text-brand-purple" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Staff Members
+              </CardTitle>
+              <Users className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {staff?.length || 0}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-            <Card data-testid="stat-staff">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Active Staff</p>
-                    <p className="text-3xl font-bold text-text-primary">8</p>
-                    <p className="text-sm text-gray-500">All departments</p>
+        {/* Recent Bookings */}
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <CardTitle>Recent Bookings</CardTitle>
+              <Button variant="outline" size="sm">
+                <Calendar className="w-4 h-4 mr-2" />
+                View All
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {bookingsLoading ? (
+              <div>Loading bookings...</div>
+            ) : (
+              <div className="space-y-2">
+                {bookings?.slice(0, 5).map((booking) => (
+                  <div key={booking.id} className="flex items-center justify-between p-3 border rounded" data-testid={`card-booking-${booking.id}`}>
+                    <div>
+                      <h3 className="font-medium" data-testid={`text-guest-name-${booking.id}`}>
+                        {booking.guestName}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        Room {booking.roomId} • {new Date(booking.checkinDate).toLocaleDateString()} - {new Date(booking.checkoutDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={booking.status === 'confirmed' ? 'default' : 'secondary'}>
+                        {booking.status}
+                      </Badge>
+                      <span className="font-medium">₦{(booking.totalAmount || 0).toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                    <Users className="text-brand-red" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Today's Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Today's Check-ins</CardTitle>
-                <CardDescription>
-                  Guests arriving today
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {todayBookings.length > 0 ? (
-                  <div className="space-y-4">
-                    {todayBookings.slice(0, 5).map((booking, index) => (
-                      <div key={booking.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg" data-testid={`checkin-${index}`}>
-                        <div>
-                          <p className="font-medium text-text-primary">{booking.guestName}</p>
-                          <p className="text-sm text-gray-600">{booking.guestEmail}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">Room {booking.roomId}</p>
-                          <Badge variant="outline">
-                            {booking.status}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <p className="text-gray-500">No check-ins scheduled for today</p>
+                ))}
+                {(!bookings || bookings.length === 0) && (
+                  <div className="text-center py-8 text-gray-500">
+                    No bookings found. Your first guest booking will appear here.
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>
-                  Common hotel management tasks
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-new-booking">
-                    <Plus className="w-4 h-4 mr-2" />
-                    New Walk-in Booking
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-room-status">
-                    <Bed className="w-4 h-4 mr-2" />
-                    Update Room Status
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-staff-schedule">
-                    <Clock className="w-4 h-4 mr-2" />
-                    View Staff Schedule
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start" data-testid="button-reports">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Generate Reports
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="p-4 hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <QrCode className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">QR Check-in</h3>
+                <p className="text-sm text-gray-500">Generate QR codes</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">WhatsApp</h3>
+                <p className="text-sm text-gray-500">Send messages</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <Fuel className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Generator</h3>
+                <p className="text-sm text-gray-500">Track fuel usage</p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-4 hover:shadow-lg transition-shadow cursor-pointer">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-medium">Analytics</h3>
+                <p className="text-sm text-gray-500">View reports</p>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     </div>

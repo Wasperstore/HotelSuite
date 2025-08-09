@@ -8,6 +8,9 @@ import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
 import SuperAdminDashboard from "@/pages/super-admin/dashboard";
 import HotelOwnerDashboard from "@/pages/hotel-owner-dashboard";
+import TenantDashboard from "@/pages/tenant-dashboard";
+import FrontDeskPWA from "@/pages/front-desk-pwa";
+import GeneratorTracker from "@/pages/generator-tracker";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -18,6 +21,10 @@ function Router() {
       <Route path="/auth" component={AuthPage} />
       <ProtectedRoute path="/super-admin" component={SuperAdminDashboard} />
       <ProtectedRoute path="/owner" component={HotelOwnerDashboard} />
+      <ProtectedRoute path="/front-desk" component={FrontDeskPWA} />
+      <ProtectedRoute path="/generator" component={GeneratorTracker} />
+      {/* Tenant-based routing for {hotel-slug} */}
+      <Route path="/:hotelSlug" component={TenantDashboard} />
       <Route component={NotFound} />
     </Switch>
   );

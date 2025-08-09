@@ -41,6 +41,7 @@ export interface IStorage {
   // New methods for owner-first flow
   getAllUsers(): Promise<User[]>;
   getUnassignedHotelOwners(): Promise<User[]>;
+  getUsersByHotel(hotelId: string): Promise<User[]>;
   
   sessionStore: any;
 }
@@ -211,6 +212,10 @@ export class DatabaseStorage implements IStorage {
         isNull(users.hotelId)
       )
     );
+  }
+
+  async getUsersByHotel(hotelId: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.hotelId, hotelId));
   }
 }
 
