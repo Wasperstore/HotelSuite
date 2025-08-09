@@ -142,6 +142,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(hotels);
   }
 
+  async getAllHotels(): Promise<Hotel[]> {
+    return await this.getHotels();
+  }
+
   async getRoomsByHotel(hotelId: string): Promise<Room[]> {
     return await db.select().from(rooms).where(eq(rooms.hotelId, hotelId));
   }

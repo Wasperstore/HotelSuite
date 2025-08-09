@@ -86,7 +86,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(403).json({ message: "Access denied" });
       }
       
-      const hotels = await storage.getAllHotels();
+      const hotels = await storage.getHotels();
       const users = await storage.getAllUsers();
       
       // Calculate system statistics

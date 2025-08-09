@@ -46,7 +46,8 @@ import {
   Bell,
   Zap,
   Server,
-  HardDrive
+  HardDrive,
+  X
 } from "lucide-react";
 
 interface SystemStats {
@@ -92,6 +93,7 @@ export default function EnhancedSuperAdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
+  const [showCreateHotelForm, setShowCreateHotelForm] = useState(false);
 
   const { data: hotels = [] } = useQuery({
     queryKey: ["/api/admin/hotels"],
@@ -133,6 +135,92 @@ export default function EnhancedSuperAdminDashboard() {
   };
 
   const stats = systemStats || defaultStats;
+
+  // Filter hotels based on search and status
+  const filteredHotels = (hotels as any[]).filter((hotel: any) => {
+    const matchesSearch = !searchQuery || 
+      hotel.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      hotel.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      hotel.slug?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesFilter = selectedFilter === 'all' || hotel.status === selectedFilter;
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  // Hotel management handlers
+  const handleCreateHotel = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    try {
+      const hotelData = {
+        name: formData.get('name') as string,
+        slug: formData.get('slug') as string,
+        address: formData.get('address') as string,
+        phone: formData.get('phone') as string,
+        email: formData.get('email') as string,
+        totalRooms: parseInt(formData.get('totalRooms') as string) || 0,
+        maxStaff: parseInt(formData.get('maxStaff') as string) || 0,
+        ownerId: formData.get('ownerId') as string,
+        status: 'active' as const
+      };
+
+      const response = await fetch('/api/admin/hotels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(hotelData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Hotel created successfully"
+        });
+        setShowCreateHotelForm(false);
+        // Refresh the hotels list
+        window.location.reload();
+      } else {
+        throw new Error('Failed to create hotel');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create hotel",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const exportHotelsData = () => {
+    const csvData = [
+      ['Name', 'Slug', 'Address', 'Phone', 'Email', 'Rooms', 'Max Staff', 'Status', 'Created'],
+      ...filteredHotels.map((hotel: any) => [
+        hotel.name || '',
+        hotel.slug || '',
+        hotel.address || '',
+        hotel.phone || '',
+        hotel.email || '',
+        hotel.totalRooms || 0,
+        hotel.maxStaff || 0,
+        hotel.status || 'active',
+        new Date(hotel.createdAt).toLocaleDateString()
+      ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+
+    const blob = new Blob([csvData], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `hotels-export-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Success",
+      description: `Exported ${filteredHotels.length} hotels to CSV`
+    });
+  };
 
   const getPriorityColor = (priority: string) => {
     const colors = {
@@ -934,26 +1022,151 @@ export default function EnhancedSuperAdminDashboard() {
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">Hotel Management</h2>
                 <div className="flex space-x-2">
-                  <Button>
+                  <Button onClick={() => setShowCreateHotelForm(true)}>
                     <Plus className="w-4 h-4 mr-2" />
                     Create Hotel
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={() => exportHotelsData()}>
                     <Download className="w-4 h-4 mr-2" />
                     Export Hotels
                   </Button>
                 </div>
               </div>
 
+{showCreateHotelForm && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Create New Hotel</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setShowCreateHotelForm(false)}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleCreateHotel} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="hotelName">Hotel Name *</Label>
+                          <Input
+                            id="hotelName"
+                            name="name"
+                            placeholder="Lagos Grand Hotel"
+                            required
+                            data-testid="input-hotel-name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hotelSlug">Hotel Slug *</Label>
+                          <Input
+                            id="hotelSlug"
+                            name="slug"
+                            placeholder="lagos-grand-hotel"
+                            required
+                            data-testid="input-hotel-slug"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hotelAddress">Address *</Label>
+                          <Input
+                            id="hotelAddress"
+                            name="address"
+                            placeholder="1 Victoria Island, Lagos, Nigeria"
+                            required
+                            data-testid="input-hotel-address"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hotelPhone">Phone</Label>
+                          <Input
+                            id="hotelPhone"
+                            name="phone"
+                            placeholder="+234 1 234 5678"
+                            data-testid="input-hotel-phone"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hotelEmail">Email</Label>
+                          <Input
+                            id="hotelEmail"
+                            name="email"
+                            type="email"
+                            placeholder="info@lagosgrand.com"
+                            data-testid="input-hotel-email"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="totalRooms">Total Rooms *</Label>
+                          <Input
+                            id="totalRooms"
+                            name="totalRooms"
+                            type="number"
+                            placeholder="25"
+                            min="1"
+                            required
+                            data-testid="input-total-rooms"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="maxStaff">Max Staff</Label>
+                          <Input
+                            id="maxStaff"
+                            name="maxStaff"
+                            type="number"
+                            placeholder="10"
+                            min="1"
+                            data-testid="input-max-staff"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hotelOwner">Assign Owner</Label>
+                          <Select name="ownerId" data-testid="select-hotel-owner">
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select hotel owner" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {(users as any[])
+                                .filter((u: any) => u.role === 'HOTEL_OWNER' && !u.hotelId)
+                                .map((owner: any) => (
+                                  <SelectItem key={owner.id} value={owner.id}>
+                                    {owner.email} - {owner.username}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => setShowCreateHotelForm(false)} data-testid="button-cancel-hotel">
+                          Cancel
+                        </Button>
+                        <Button type="submit" data-testid="button-create-hotel">
+                          Create Hotel
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle>Hotels List</CardTitle>
+                    <CardTitle>Hotels List ({filteredHotels.length} hotels)</CardTitle>
                     <div className="flex items-center space-x-2">
-                      <Input placeholder="Search hotels..." className="max-w-sm" />
-                      <Select>
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Search hotels..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-8 w-64"
+                          data-testid="input-search-hotels"
+                        />
+                      </div>
+                      <Select value={selectedFilter} onValueChange={setSelectedFilter} data-testid="select-hotel-filter">
                         <SelectTrigger className="w-32">
-                          <SelectValue placeholder="Status" />
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Status</SelectItem>
@@ -966,43 +1179,105 @@ export default function EnhancedSuperAdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    {hotels.map((hotel) => {
-                      const owner = users.find(u => u.hotelId === hotel.id && u.role === 'HOTEL_OWNER');
-                      return (
-                        <div key={hotel.id} className="flex items-center justify-between p-4 border rounded-lg">
-                          <div className="flex items-center space-x-4">
-                            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <Building className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-bold text-lg">{hotel.name}</h4>
-                              <p className="text-sm text-gray-600">
-                                {hotel.address} • Owner: {owner?.fullName || 'Unassigned'}
-                              </p>
-                              <div className="flex items-center mt-2 space-x-2">
-                                <Badge variant={hotel.status === 'active' ? 'default' : 'secondary'}>
-                                  {hotel.status}
-                                </Badge>
-                                <Badge variant="outline">/{hotel.slug}</Badge>
+                  {filteredHotels.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Building className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-500 mb-2">No hotels found</p>
+                      <p className="text-sm text-gray-400">
+                        {searchQuery || selectedFilter !== 'all' 
+                          ? 'Try adjusting your search or filters'
+                          : 'Create your first hotel to get started'
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredHotels.map((hotel: any) => {
+                        const owner = (users as any[]).find((u: any) => u.hotelId === hotel.id && u.role === 'HOTEL_OWNER');
+                        return (
+                        <div key={hotel.id} className="border rounded-lg p-4" data-testid={`hotel-card-${hotel.id}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center space-x-3">
+                              <Building className="w-8 h-8 text-blue-600" />
+                              <div>
+                                <h3 className="font-semibold" data-testid={`hotel-name-${hotel.id}`}>{hotel.name}</h3>
+                                <p className="text-sm text-gray-600" data-testid={`hotel-address-${hotel.id}`}>{hotel.address}</p>
+                                <p className="text-xs text-gray-500">Slug: {hotel.slug}</p>
+                                {owner && <p className="text-xs text-blue-600">Owner: {owner.email}</p>}
                               </div>
                             </div>
+                            <div className="flex items-center space-x-2">
+                              <Badge 
+                                className={
+                                  hotel.status === 'active' ? 'bg-green-100 text-green-800' : 
+                                  hotel.status === 'trial' ? 'bg-yellow-100 text-yellow-800' : 
+                                  'bg-red-100 text-red-800'
+                                }
+                                data-testid={`hotel-status-${hotel.id}`}
+                              >
+                                {hotel.status}
+                              </Badge>
+                              <Button variant="outline" size="sm" data-testid={`button-view-hotel-${hotel.id}`}>
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" data-testid={`button-edit-hotel-${hotel.id}`}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="outline" size="sm" className="text-red-600" data-testid={`button-delete-hotel-${hotel.id}`}>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex space-x-2">
-                            <Button variant="outline" size="sm">
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Settings className="w-4 h-4" />
-                            </Button>
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Rooms:</span>
+                              <span className="ml-1 font-medium">{hotel.totalRooms || 0}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Max Staff:</span>
+                              <span className="ml-1 font-medium">{hotel.maxStaff || 0}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Email:</span>
+                              <span className="ml-1 font-medium">{hotel.email || 'Not set'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Phone:</span>
+                              <span className="ml-1 font-medium">{hotel.phone || 'Not set'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Created:</span>
+                              <span className="ml-1 font-medium">{new Date(hotel.createdAt).toLocaleDateString()}</span>
+                            </div>
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                      })}
+                    </div>
+                  )}
+                  
+                  {filteredHotels.length > 0 && (
+                    <div className="flex items-center justify-between pt-4 border-t">
+                      <div className="flex items-center space-x-2">
+                        <Button variant="outline" size="sm">Previous</Button>
+                        <span className="text-sm text-gray-600">Page 1 of 1</span>
+                        <Button variant="outline" size="sm">Next</Button>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-600">Show:</span>
+                        <Select defaultValue="10">
+                          <SelectTrigger className="w-20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="25">25</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
