@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/use-auth";
 import HomePage from "@/pages/home-page";
 import AuthPage from "@/pages/auth-page";
-import SuperAdminDashboard from "@/pages/super-admin-dashboard";
+import SuperAdminDashboard from "@/pages/super-admin/dashboard";
 import HotelOwnerDashboard from "@/pages/hotel-owner-dashboard";
 import NotFound from "@/pages/not-found";
 import { ProtectedRoute } from "./lib/protected-route";
