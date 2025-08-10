@@ -239,7 +239,12 @@ export const messageLogsRelations = relations(messageLogs, ({ one }) => ({
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
-  deletedAt: true
+  deletedAt: true,
+  passwordHash: true,
+  pinHash: true
+}).extend({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  pin: z.string().optional()
 });
 
 export const insertHotelSchema = createInsertSchema(hotels).omit({

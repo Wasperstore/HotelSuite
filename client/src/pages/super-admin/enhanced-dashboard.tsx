@@ -253,9 +253,10 @@ export default function EnhancedSuperAdminDashboard() {
         });
         setShowCreateSystemUserForm(false);
         // Refresh users list
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       } else {
-        throw new Error('Failed to create user');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create user');
       }
     } catch (error) {
       toast({
@@ -293,9 +294,10 @@ export default function EnhancedSuperAdminDashboard() {
         });
         setShowCreateHotelOwnerForm(false);
         // Refresh users list
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       } else {
-        throw new Error('Failed to create hotel owner');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create hotel owner');
       }
     } catch (error) {
       toast({
@@ -320,7 +322,7 @@ export default function EnhancedSuperAdminDashboard() {
           description: "User deleted successfully"
         });
         // Refresh users list
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
       } else {
         throw new Error('Failed to delete user');
       }

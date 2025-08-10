@@ -9,10 +9,16 @@ import { generateTempPassword, generateInviteToken, createInviteEmail, createPas
 import { generateQRCode, validateQRCode } from "./utils/qr-generator";
 import { generateICalFeed, syncOTABookings } from "./utils/ical-sync";
 import { paymentService } from "./utils/payment-integration";
-import { scrypt } from "crypto";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
+
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
 
 export function registerRoutes(app: Express): Server {
   // Apply domain separation middleware
@@ -99,13 +105,13 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Username already taken" });
       }
       
-      // Hash password before storing
-      const bcrypt = require('bcrypt');
-      const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      // Hash password before storing  
+      const hashedPassword = await hashPassword(validatedData.password);
       
+      const { password, ...userDataWithoutPassword } = validatedData;
       const user = await storage.createUser({
-        ...validatedData,
-        password: hashedPassword
+        ...userDataWithoutPassword,
+        passwordHash: hashedPassword
       });
       
       res.status(201).json(user);
