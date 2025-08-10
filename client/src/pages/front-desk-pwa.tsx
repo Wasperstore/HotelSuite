@@ -27,7 +27,8 @@ import {
   AlertCircle,
   Home,
   Phone,
-  Mail
+  Mail,
+  LogOut
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -291,9 +292,19 @@ export default function FrontDeskPWA() {
               </div>
             )}
             
-            <Button variant="ghost" size="sm" onClick={() => logoutMutation.mutate()}>
-              {user?.fullName}
-            </Button>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600">{user?.fullName}</span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => logoutMutation.mutate()}
+                data-testid="button-logout"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <LogOut className="w-4 h-4 mr-1" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>

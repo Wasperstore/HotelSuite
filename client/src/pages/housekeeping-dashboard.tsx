@@ -87,7 +87,8 @@ export default function HousekeepingDashboard() {
             <p className="text-gray-600 mb-4">
               You don't have permission to access the Housekeeping dashboard.
             </p>
-            <Button onClick={() => logoutMutation.mutate()} variant="outline">
+            <Button onClick={() => logoutMutation.mutate()} variant="outline" data-testid="button-logout">
+              <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
           </CardContent>
@@ -116,8 +117,15 @@ export default function HousekeepingDashboard() {
               <User className="w-4 h-4" />
               <span>{user?.fullName}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => logoutMutation.mutate()}>
-              <LogOut className="w-4 h-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => logoutMutation.mutate()}
+              data-testid="button-logout"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Logout
             </Button>
           </div>
         </div>

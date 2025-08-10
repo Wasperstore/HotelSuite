@@ -33,8 +33,15 @@ export default function MaintenanceDashboard() {
               <User className="w-4 h-4" />
               <span>{user?.fullName}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => logoutMutation.mutate()}>
-              <LogOut className="w-4 h-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => logoutMutation.mutate()}
+              data-testid="button-logout"
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <LogOut className="w-4 h-4 mr-1" />
+              Logout
             </Button>
           </div>
         </div>

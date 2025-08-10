@@ -77,12 +77,14 @@ export default function TenantDashboard() {
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline">Welcome, {user.fullName}</Badge>
                   <Button 
-                    variant="ghost" 
+                    variant="outline" 
                     size="sm" 
                     onClick={() => logoutMutation.mutate()}
                     data-testid="button-logout"
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <LogOut className="w-4 h-4 mr-1" />
+                    Logout
                   </Button>
                 </div>
               ) : (
