@@ -49,6 +49,7 @@ import {
   HardDrive,
   X
 } from "lucide-react";
+import HotelSetupWizard from "@/components/hotel-setup-wizard";
 
 interface SystemStats {
   totalHotels: number;
@@ -1503,132 +1504,7 @@ export default function EnhancedSuperAdminDashboard() {
                 </div>
               </div>
 
-{showCreateHotelForm && (
-                <Card>
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Create New Hotel</CardTitle>
-                      <Button variant="ghost" size="sm" onClick={() => setShowCreateHotelForm(false)}>
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <form onSubmit={handleCreateHotel} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="hotelName">Hotel Name *</Label>
-                          <Input
-                            id="hotelName"
-                            name="name"
-                            placeholder="Lagos Grand Hotel"
-                            required
-                            data-testid="input-hotel-name"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="hotelSlug">Hotel Slug *</Label>
-                          <Input
-                            id="hotelSlug"
-                            name="slug"
-                            placeholder="lagos-grand-hotel"
-                            required
-                            data-testid="input-hotel-slug"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="hotelAddress">Address *</Label>
-                          <Input
-                            id="hotelAddress"
-                            name="address"
-                            placeholder="1 Victoria Island, Lagos, Nigeria"
-                            required
-                            data-testid="input-hotel-address"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="hotelPhone">Phone</Label>
-                          <Input
-                            id="hotelPhone"
-                            name="phone"
-                            placeholder="+234 1 234 5678"
-                            data-testid="input-hotel-phone"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="hotelEmail">Email</Label>
-                          <Input
-                            id="hotelEmail"
-                            name="email"
-                            type="email"
-                            placeholder="info@lagosgrand.com"
-                            data-testid="input-hotel-email"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="totalRooms">Total Rooms *</Label>
-                          <Input
-                            id="totalRooms"
-                            name="totalRooms"
-                            type="number"
-                            placeholder="25"
-                            min="1"
-                            required
-                            data-testid="input-total-rooms"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="maxStaff">Max Staff *</Label>
-                          <Input
-                            id="maxStaff"
-                            name="maxStaff"
-                            type="number"
-                            placeholder="10"
-                            min="1"
-                            required
-                            data-testid="input-max-staff"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <textarea 
-                          id="description"
-                          name="description"
-                          placeholder="Luxury hotel with modern amenities in the heart of Lagos..."
-                          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          data-testid="textarea-hotel-description"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="hotelOwner">Assign Owner</Label>
-                          <Select name="ownerId" data-testid="select-hotel-owner">
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select hotel owner" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {(users as any[])
-                                .filter((u: any) => u.role === 'HOTEL_OWNER' && !u.hotelId)
-                                .map((owner: any) => (
-                                  <SelectItem key={owner.id} value={owner.id}>
-                                    {owner.email} - {owner.username}
-                                  </SelectItem>
-                                ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      <div className="flex justify-end space-x-2 pt-4">
-                        <Button type="button" variant="outline" onClick={() => setShowCreateHotelForm(false)} data-testid="button-cancel-hotel">
-                          Cancel
-                        </Button>
-                        <Button type="submit" data-testid="button-create-hotel">
-                          Create Hotel
-                        </Button>
-                      </div>
-                    </form>
-                  </CardContent>
-                </Card>
-              )}
+{showCreateHotelForm && <HotelSetupWizard onClose={() => setShowCreateHotelForm(false)} />}
 
               {showEditHotelForm && editingHotel && (
                 <Card>

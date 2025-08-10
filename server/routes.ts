@@ -100,7 +100,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "User with this email already exists" });
       }
 
-      const existingUsername = await storage.getUserByUsername(validatedData.username);
+      const existingUsername = await storage.getUserByUsername(validatedData.username || "");
       if (existingUsername) {
         return res.status(400).json({ message: "Username already taken" });
       }
@@ -111,7 +111,7 @@ export function registerRoutes(app: Express): Server {
       const { password, ...userDataWithoutPassword } = validatedData;
       const user = await storage.createUser({
         ...userDataWithoutPassword,
-        passwordHash: hashedPassword
+        password: hashedPassword
       });
       
       res.status(201).json(user);
@@ -291,6 +291,30 @@ export function registerRoutes(app: Express): Server {
       
       res.json(plans);
     } catch (error) {
+      next(error);
+    }
+  });
+
+  app.post("/api/admin/hotel-owners", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const userData = {
+        ...req.body,
+        role: 'HOTEL_OWNER' as const,
+        password: await hashPassword(req.body.password),
+        forcePasswordReset: true
+      };
+      
+      const validatedData = insertUserSchema.parse(userData);
+      const user = await storage.createUser(validatedData);
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
       next(error);
     }
   });
