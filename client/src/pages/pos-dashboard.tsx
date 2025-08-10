@@ -7,8 +7,17 @@ import {
   Receipt,
   Utensils,
   User,
-  LogOut
+  LogOut,
+  Settings,
+  ChevronDown
 } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 
 export default function POSDashboard() {
   const { user, logoutMutation } = useAuth();
@@ -32,9 +41,39 @@ export default function POSDashboard() {
               <User className="w-4 h-4" />
               <span>{user?.fullName}</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => logoutMutation.mutate()}>
-              <LogOut className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  data-testid="button-settings-menu"
+                >
+                  <Settings className="w-4 h-4 mr-1" />
+                  Settings
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem disabled>
+                  <Settings className="w-4 h-4 mr-2" />
+                  POS Preferences
+                </DropdownMenuItem>
+                <DropdownMenuItem disabled>
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Order Settings
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => logoutMutation.mutate()}
+                  data-testid="button-logout"
+                  className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
