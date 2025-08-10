@@ -54,7 +54,7 @@ export default function POSDashboard() {
                   <ChevronDown className="w-3 h-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-48 z-[60]">
                 <DropdownMenuItem disabled>
                   <Settings className="w-4 h-4 mr-2" />
                   POS Preferences

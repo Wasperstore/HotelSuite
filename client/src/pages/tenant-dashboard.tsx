@@ -90,15 +90,16 @@ export default function TenantDashboard() {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50 relative"
                         data-testid="button-settings-menu"
+                        onClick={() => console.log('Settings button clicked')}
                       >
                         <Settings className="w-4 h-4 mr-1" />
                         Settings
                         <ChevronDown className="w-3 h-3 ml-1" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-48 z-[60]">
                       <DropdownMenuItem disabled>
                         <Settings className="w-4 h-4 mr-2" />
                         Account Settings
