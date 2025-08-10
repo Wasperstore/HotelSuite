@@ -19,7 +19,6 @@ import {
   CreditCard,
   Key,
   Bell,
-  Settings,
   Users,
   Bed,
   Clock,
@@ -28,8 +27,17 @@ import {
   Home,
   Phone,
   Mail,
-  LogOut
+  LogOut,
+  Settings,
+  ChevronDown
 } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -294,16 +302,43 @@ export default function FrontDeskPWA() {
             
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600">{user?.fullName}</span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => logoutMutation.mutate()}
-                data-testid="button-logout"
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <LogOut className="w-4 h-4 mr-1" />
-                Logout
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    data-testid="button-settings-menu"
+                  >
+                    <Settings className="w-4 h-4 mr-1" />
+                    Settings
+                    <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem disabled>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Front Desk Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    <Bell className="w-4 h-4 mr-2" />
+                    Notifications
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    <Printer className="w-4 h-4 mr-2" />
+                    Print Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => logoutMutation.mutate()}
+                    data-testid="button-logout"
+                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </div>

@@ -15,8 +15,17 @@ import {
   MessageCircle,
   Star,
   MapPin,
-  LogOut
+  LogOut,
+  Settings,
+  ChevronDown
 } from "lucide-react";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
 import type { Hotel, Room } from "@shared/schema";
 import HotelLogo from "@/components/ui/hotel-logo";
 
@@ -76,16 +85,39 @@ export default function TenantDashboard() {
               {user ? (
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline">Welcome, {user.fullName}</Badge>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => logoutMutation.mutate()}
-                    data-testid="button-logout"
-                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                  >
-                    <LogOut className="w-4 h-4 mr-1" />
-                    Logout
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                        data-testid="button-settings-menu"
+                      >
+                        <Settings className="w-4 h-4 mr-1" />
+                        Settings
+                        <ChevronDown className="w-3 h-3 ml-1" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem disabled>
+                        <Settings className="w-4 h-4 mr-2" />
+                        Account Settings
+                      </DropdownMenuItem>
+                      <DropdownMenuItem disabled>
+                        <QrCode className="w-4 h-4 mr-2" />
+                        QR Preferences
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => logoutMutation.mutate()}
+                        data-testid="button-logout"
+                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Logout
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               ) : (
                 <Button asChild data-testid="button-guest-login">
