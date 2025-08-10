@@ -72,7 +72,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async getUser(id: string): Promise<User | undefined> {
+  async getUser(id: string | number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
   }
@@ -95,11 +95,11 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUser(id: string, updates: Partial<InsertUser>): Promise<User> {
+  async updateUser(id: string | number, updates: Partial<InsertUser>): Promise<User | undefined> {
     const [user] = await db
       .update(users)
       .set(updates)
-      .where(eq(users.id, id))
+      .where(eq(users.id, typeof id === 'string' ? parseInt(id) : id))
       .returning();
     return user;
   }

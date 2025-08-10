@@ -14,14 +14,15 @@ import {
   QrCode,
   MessageCircle,
   Star,
-  MapPin
+  MapPin,
+  LogOut
 } from "lucide-react";
 import type { Hotel, Room } from "@shared/schema";
 import HotelLogo from "@/components/ui/hotel-logo";
 
 export default function TenantDashboard() {
   const { hotelSlug } = useParams();
-  const { user } = useAuth();
+  const { user, logoutMutation } = useAuth();
 
   // Fetch hotel data by slug
   const { data: hotel, isLoading: hotelLoading } = useQuery<Hotel>({
@@ -73,7 +74,17 @@ export default function TenantDashboard() {
             <HotelLogo hotel={hotel} size="md" showName={true} />
             <div className="flex items-center space-x-4">
               {user ? (
-                <Badge variant="outline">Welcome, {user.fullName}</Badge>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="outline">Welcome, {user.fullName}</Badge>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => logoutMutation.mutate()}
+                    data-testid="button-logout"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </Button>
+                </div>
               ) : (
                 <Button asChild data-testid="button-guest-login">
                   <a href="/auth">Guest Login</a>

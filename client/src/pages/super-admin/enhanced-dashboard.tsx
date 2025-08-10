@@ -16,6 +16,7 @@ import {
   insertUserSchema 
 } from "@shared/schema";
 import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
+import ComprehensiveHotelEditor from "@/components/comprehensive-hotel-editor";
 import { 
   Building, 
   Users, 
@@ -96,8 +97,9 @@ export default function EnhancedSuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [showCreateHotelForm, setShowCreateHotelForm] = useState(false);
+  const [showComprehensiveEditor, setShowComprehensiveEditor] = useState(false);
+  const [editingHotel, setEditingHotel] = useState<Hotel | null>(null);
   const [showEditHotelForm, setShowEditHotelForm] = useState(false);
-  const [editingHotel, setEditingHotel] = useState<any>(null);
   const [showCreateSystemUserForm, setShowCreateSystemUserForm] = useState(false);
   const [showCreateHotelOwnerForm, setShowCreateHotelOwnerForm] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -1703,7 +1705,10 @@ export default function EnhancedSuperAdminDashboard() {
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                onClick={() => handleEditHotel(hotel)}
+                                onClick={() => {
+                  setEditingHotel(hotel);
+                  setShowComprehensiveEditor(true);
+                }}
                                 data-testid={`button-edit-hotel-${hotel.id}`}
                               >
                                 <Edit className="w-4 h-4" />
@@ -2255,6 +2260,17 @@ export default function EnhancedSuperAdminDashboard() {
           )}
         </main>
       </div>
+
+      {/* Comprehensive Hotel Editor Modal */}
+      {showComprehensiveEditor && editingHotel && (
+        <ComprehensiveHotelEditor
+          hotel={editingHotel}
+          onClose={() => {
+            setShowComprehensiveEditor(false);
+            setEditingHotel(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -84,7 +84,7 @@ export function setupAuth(app: Express) {
           email: "wasperstore@gmail.com",
           username: "wasperstore",
           fullName: "Super Administrator",
-          passwordHash: await hashPassword("Azeezwosilat1986@"),
+          password: await hashPassword("Azeezwosilat1986@"),
           role: "SUPER_ADMIN"
         });
         console.log("Super admin user created successfully");
@@ -110,7 +110,7 @@ export function setupAuth(app: Express) {
 
       const user = await storage.createUser({
         ...validatedData,
-        passwordHash: await hashPassword(validatedData.password),
+        password: await hashPassword(validatedData.password),
         role: validatedData.role || "GUEST"
       });
 
@@ -148,5 +148,42 @@ export function setupAuth(app: Express) {
   app.get("/api/user", (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     res.json(req.user);
+  });
+
+  // Password reset endpoint
+  app.post("/api/reset-password", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+
+      const user = await storage.getUser(req.user!.id);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Verify current password
+      const isValidPassword = await comparePasswords(currentPassword, user.password);
+      if (!isValidPassword) {
+        return res.status(400).json({ message: "Current password is incorrect" });
+      }
+
+      // Update password and clear force reset flag
+      const hashedNewPassword = await hashPassword(newPassword);
+      await storage.updateUser(user.id, { 
+        password: hashedNewPassword,
+        forcePasswordReset: false 
+      });
+
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      next(error);
+    }
   });
 }

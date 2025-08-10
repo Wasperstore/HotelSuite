@@ -38,7 +38,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Hotel, Room, Booking, GeneratorLog, User } from "@shared/schema";
 import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
-import { useState, useEffect } from "react";
+import PasswordResetModal from "@/components/password-reset-modal";
 
 const createRoomSchema = z.object({
   number: z.string().min(1, "Room number is required"),
@@ -60,6 +60,14 @@ type CreateStaffData = z.infer<typeof createStaffSchema>;
 
 export default function HotelOwnerDashboard() {
   const { user, logoutMutation } = useAuth();
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+
+  // Check if user needs to reset password on first login
+  useEffect(() => {
+    if (user?.forcePasswordReset) {
+      setShowPasswordReset(true);
+    }
+  }, [user]);
   const { toast } = useToast();
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const [showCreateStaff, setShowCreateStaff] = useState(false);
@@ -667,6 +675,14 @@ export default function HotelOwnerDashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Password Reset Modal */}
+      {showPasswordReset && user && (
+        <PasswordResetModal
+          user={user}
+          onComplete={() => setShowPasswordReset(false)}
+        />
+      )}
     </div>
   );
 }
