@@ -38,6 +38,13 @@ export const hotels = pgTable("hotels", {
   slug: varchar("slug", { length: 100 }).notNull().unique(),
   domain: varchar("domain", { length: 255 }).unique(),
   ownerId: uuid("owner_id"),
+  address: text("address"),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 20 }),
+  totalRooms: integer("total_rooms").default(0),
+  maxStaff: integer("max_staff").default(10),
+  description: text("description"),
+  amenities: text("amenities").array(),
   status: varchar("status", { length: 50 }).notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow()
 });
@@ -250,6 +257,9 @@ export const insertUserSchema = createInsertSchema(users).omit({
 export const insertHotelSchema = createInsertSchema(hotels).omit({
   id: true,
   createdAt: true
+}).extend({
+  totalRooms: z.coerce.number().min(1, "Must have at least 1 room"),
+  maxStaff: z.coerce.number().min(1, "Must allow at least 1 staff member")
 });
 
 export const insertRoomSchema = createInsertSchema(rooms).omit({

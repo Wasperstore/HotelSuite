@@ -1,0 +1,189 @@
+Super Admin Dashboard – Feature Map
+1. Overview / Home
+Purpose: Quick snapshot of the entire platform's health & activity.
+Widgets:
+
+KPIs at the top:
+
+Total Hotels
+
+Total Active Users
+
+Active Subscriptions
+
+Monthly Revenue
+
+Support Tickets Pending
+
+Charts:
+
+Revenue trends (monthly/quarterly)
+
+New hotel signups per month
+
+System health monitor (API uptime, DB usage)
+
+Recent activity feed (new hotels created, billing events, login alerts)
+
+2. User & Role Management
+Purpose: Full control over all platform-level users & hotel owners.
+Pages:
+
+System Users
+
+Search & filter by role (Super Admin, Developer, Support)
+
+Add/Edit/Delete users
+
+Hotel Owners
+
+List all owners with assigned hotels
+
+Create new owner (unique email)
+
+View owner profile (contact info, subscription plan, billing)
+
+Staff Directory
+
+See all hotel staff across all hotels
+
+Delete any staff user
+
+Cannot directly create hotel staff (only hotel owners/managers can)
+
+3. Hotel Management
+Purpose: Manage hotel entities system-wide.
+Pages:
+
+Hotels List
+
+Search by name, owner, city
+
+Status (Active, Trial, Suspended)
+
+Create Hotel
+
+Assign to existing owner (dropdown)
+
+Configure rooms, facilities
+
+Hotel Details
+
+Staff list
+
+Current subscription plan
+
+Storage usage & booking activity
+
+Domain mapping
+
+4. Subscription & Billing
+Purpose: Control SaaS monetization.
+Pages:
+
+Plans & Pricing
+
+Create/edit subscription tiers
+
+Set room limits, staff limits, features
+
+Invoices
+
+View all invoices generated
+
+Export billing data (CSV, PDF)
+
+Payments
+
+Monitor failed payments
+
+Retry or cancel subscriptions
+
+Usage Reports
+
+Track feature usage per hotel
+
+5. Reports & Analytics
+Purpose: Insights across the platform.
+Reports:
+
+Monthly Revenue Breakdown
+
+Occupancy trends (aggregated)
+
+Most active hotels (by bookings)
+
+Staff activity logs
+
+Booking source summary (OTA vs direct)
+
+6. Support & Communication
+Purpose: Manage hotel owner & staff support.
+Pages:
+
+Support Tickets
+
+Assign to support staff
+
+Track status (Open, Pending, Closed)
+
+System Announcements
+
+Send global notifications
+
+Email newsletters to owners
+
+Audit Logs
+
+Every system change by any user
+
+7. System Settings
+Purpose: Maintain platform integrity.
+Settings:
+
+Domain routing rules (e.g., hotelSlug.luxuryhotelsaas.com)
+
+API keys management
+
+Backup & restore DB
+
+App theme & white-label settings
+
+Developer tools (sandbox hotel creation, API test console)
+
+8. Advanced Tools (Optional)
+Bulk hotel import/export
+
+Hotel migration tool (transfer from another PMS)
+
+Beta features toggle (for early access testing)
+
+Super Admin Dashboard UI/UX Structure
+Top Nav Bar:
+
+Platform name/logo
+
+Search bar (search hotels, users, invoices)
+
+Notifications icon
+
+User profile menu
+
+Left Sidebar (Unique to Super Admin):
+
+Overview
+
+Users & Roles
+
+Hotels
+
+Billing
+
+Reports
+
+Support
+
+Settings
+
+Tools
+

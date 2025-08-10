@@ -295,6 +295,29 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.put("/api/admin/hotels/:hotelId", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { hotelId } = req.params;
+      const validatedData = insertHotelSchema.partial().parse(req.body);
+      
+      const hotel = await storage.updateHotel(hotelId, validatedData);
+      if (!hotel) {
+        return res.status(404).json({ message: "Hotel not found" });
+      }
+      
+      res.json(hotel);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
+      }
+      next(error);
+    }
+  });
+
   // OTA iCal sync routes
   app.get("/api/hotels/:hotelId/ical", async (req, res, next) => {
     try {

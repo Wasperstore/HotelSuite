@@ -94,6 +94,8 @@ export default function EnhancedSuperAdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [showCreateHotelForm, setShowCreateHotelForm] = useState(false);
+  const [showEditHotelForm, setShowEditHotelForm] = useState(false);
+  const [editingHotel, setEditingHotel] = useState<any>(null);
   const [showCreateSystemUserForm, setShowCreateSystemUserForm] = useState(false);
   const [showCreateHotelOwnerForm, setShowCreateHotelOwnerForm] = useState(false);
   const [userSearchQuery, setUserSearchQuery] = useState("");
@@ -166,6 +168,7 @@ export default function EnhancedSuperAdminDashboard() {
         email: formData.get('email') as string,
         totalRooms: parseInt(formData.get('totalRooms') as string) || 0,
         maxStaff: parseInt(formData.get('maxStaff') as string) || 0,
+        description: formData.get('description') as string,
         ownerId: formData.get('ownerId') as string,
         status: 'active' as const
       };
@@ -182,15 +185,64 @@ export default function EnhancedSuperAdminDashboard() {
           description: "Hotel created successfully"
         });
         setShowCreateHotelForm(false);
-        // Refresh the hotels list
-        window.location.reload();
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/hotels'] });
       } else {
-        throw new Error('Failed to create hotel');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to create hotel');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to create hotel",
+        description: error.message || "Failed to create hotel",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleEditHotel = (hotel: any) => {
+    setEditingHotel(hotel);
+    setShowEditHotelForm(true);
+  };
+
+  const handleUpdateHotel = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    
+    try {
+      const hotelData = {
+        name: formData.get('name') as string,
+        slug: formData.get('slug') as string,
+        address: formData.get('address') as string,
+        phone: formData.get('phone') as string,
+        email: formData.get('email') as string,
+        totalRooms: parseInt(formData.get('totalRooms') as string) || 0,
+        maxStaff: parseInt(formData.get('maxStaff') as string) || 0,
+        description: formData.get('description') as string,
+        status: formData.get('status') as string,
+      };
+
+      const response = await fetch(`/api/admin/hotels/${editingHotel.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(hotelData)
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: "Hotel updated successfully"
+        });
+        setShowEditHotelForm(false);
+        setEditingHotel(null);
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/hotels'] });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update hotel');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update hotel",
         variant: "destructive"
       });
     }
@@ -1526,14 +1578,26 @@ export default function EnhancedSuperAdminDashboard() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="maxStaff">Max Staff</Label>
+                          <Label htmlFor="maxStaff">Max Staff *</Label>
                           <Input
                             id="maxStaff"
                             name="maxStaff"
                             type="number"
                             placeholder="10"
                             min="1"
+                            required
                             data-testid="input-max-staff"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="description">Description</Label>
+                        <textarea 
+                          id="description"
+                          name="description"
+                          placeholder="Luxury hotel with modern amenities in the heart of Lagos..."
+                          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          data-testid="textarea-hotel-description"
                           />
                         </div>
                         <div className="space-y-2">
@@ -1553,13 +1617,134 @@ export default function EnhancedSuperAdminDashboard() {
                             </SelectContent>
                           </Select>
                         </div>
-                      </div>
                       <div className="flex justify-end space-x-2 pt-4">
                         <Button type="button" variant="outline" onClick={() => setShowCreateHotelForm(false)} data-testid="button-cancel-hotel">
                           Cancel
                         </Button>
                         <Button type="submit" data-testid="button-create-hotel">
                           Create Hotel
+                        </Button>
+                      </div>
+                    </form>
+                  </CardContent>
+                </Card>
+              )}
+
+              {showEditHotelForm && editingHotel && (
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Edit Hotel: {editingHotel.name}</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => {setShowEditHotelForm(false); setEditingHotel(null);}}>
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleUpdateHotel} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="editHotelName">Hotel Name *</Label>
+                          <Input
+                            id="editHotelName"
+                            name="name"
+                            defaultValue={editingHotel.name}
+                            required
+                            data-testid="input-edit-hotel-name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editHotelSlug">Hotel Slug *</Label>
+                          <Input
+                            id="editHotelSlug"
+                            name="slug"
+                            defaultValue={editingHotel.slug}
+                            required
+                            data-testid="input-edit-hotel-slug"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editHotelAddress">Address</Label>
+                          <Input
+                            id="editHotelAddress"
+                            name="address"
+                            defaultValue={editingHotel.address || ''}
+                            data-testid="input-edit-hotel-address"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editHotelPhone">Phone</Label>
+                          <Input
+                            id="editHotelPhone"
+                            name="phone"
+                            defaultValue={editingHotel.phone || ''}
+                            data-testid="input-edit-hotel-phone"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editHotelEmail">Email</Label>
+                          <Input
+                            id="editHotelEmail"
+                            name="email"
+                            type="email"
+                            defaultValue={editingHotel.email || ''}
+                            data-testid="input-edit-hotel-email"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editTotalRooms">Total Rooms *</Label>
+                          <Input
+                            id="editTotalRooms"
+                            name="totalRooms"
+                            type="number"
+                            defaultValue={editingHotel.totalRooms || 0}
+                            min="1"
+                            required
+                            data-testid="input-edit-total-rooms"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editMaxStaff">Max Staff *</Label>
+                          <Input
+                            id="editMaxStaff"
+                            name="maxStaff"
+                            type="number"
+                            defaultValue={editingHotel.maxStaff || 0}
+                            min="1"
+                            required
+                            data-testid="input-edit-max-staff"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="editHotelStatus">Status</Label>
+                          <select 
+                            name="status" 
+                            defaultValue={editingHotel.status}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                            data-testid="select-edit-hotel-status"
+                          >
+                            <option value="active">Active</option>
+                            <option value="trial">Trial</option>
+                            <option value="suspended">Suspended</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="editDescription">Description</Label>
+                        <textarea 
+                          id="editDescription"
+                          name="description"
+                          defaultValue={editingHotel.description || ''}
+                          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          data-testid="textarea-edit-hotel-description"
+                        />
+                      </div>
+                      <div className="flex justify-end space-x-2 pt-4">
+                        <Button type="button" variant="outline" onClick={() => {setShowEditHotelForm(false); setEditingHotel(null);}} data-testid="button-cancel-edit-hotel">
+                          Cancel
+                        </Button>
+                        <Button type="submit" data-testid="button-update-hotel">
+                          Update Hotel
                         </Button>
                       </div>
                     </form>
@@ -1638,7 +1823,12 @@ export default function EnhancedSuperAdminDashboard() {
                               <Button variant="outline" size="sm" data-testid={`button-view-hotel-${hotel.id}`}>
                                 <Eye className="w-4 h-4" />
                               </Button>
-                              <Button variant="outline" size="sm" data-testid={`button-edit-hotel-${hotel.id}`}>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleEditHotel(hotel)}
+                                data-testid={`button-edit-hotel-${hotel.id}`}
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button variant="outline" size="sm" className="text-red-600" data-testid={`button-delete-hotel-${hotel.id}`}>
