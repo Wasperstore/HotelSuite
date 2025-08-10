@@ -45,6 +45,11 @@ export const hotels = pgTable("hotels", {
   maxStaff: integer("max_staff").default(10),
   description: text("description"),
   amenities: text("amenities").array(),
+  facilities: text("facilities").array(),
+  services: text("services").array(),
+  currency: varchar("currency", { length: 10 }).default("NGN"),
+  defaultLanguage: varchar("default_language", { length: 10 }).default("en"),
+  website: varchar("website", { length: 255 }),
   status: varchar("status", { length: 50 }).notNull().default("active"),
   createdAt: timestamp("created_at").defaultNow()
 });

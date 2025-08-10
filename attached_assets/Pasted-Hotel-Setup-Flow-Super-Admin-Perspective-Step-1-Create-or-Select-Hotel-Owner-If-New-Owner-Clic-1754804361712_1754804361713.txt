@@ -1,0 +1,169 @@
+Hotel Setup Flow (Super Admin Perspective)
+Step 1 – Create or Select Hotel Owner
+If New Owner:
+
+Click "Add Hotel Owner"
+
+Fill:
+
+Name
+
+Email (unique system-wide)
+
+Phone (optional)
+
+Password (auto-generate or manual)
+
+Save → Owner account created, but no hotels yet.
+
+If Existing Owner:
+
+Search & select from dropdown list.
+
+View owner details before proceeding.
+
+Step 2 – Choose Hotel Template
+Templates help pre-load common configurations based on hotel type:
+
+Luxury Resort
+
+Facilities: Spa, Pool, Gym, Restaurants, Villas
+
+Room types: Deluxe Suite, Pool Villa, Garden View
+
+Services: Butler service, 24/7 concierge
+
+Business Hotel
+
+Facilities: Conference halls, Meeting rooms
+
+Room types: Executive Suite, Standard Room
+
+Services: Airport pickup, Express check-in
+
+Budget Hotel
+
+Facilities: Basic lobby, Parking, Free WiFi
+
+Room types: Single, Double
+
+Services: Breakfast only
+
+Boutique Hotel
+
+Facilities: Art gallery, Personalized decor
+
+Room types: Themed suites, Standard rooms
+
+Services: Personal concierge, Local tours
+
+Custom (Blank Setup)
+
+No preloaded data, owner configures everything.
+
+Step 3 – Assign Basic Hotel Info
+Required Fields:
+
+Hotel Name
+
+Location (City, Country, GPS)
+
+Number of Rooms
+
+Currency
+
+Default Language
+
+Optional:
+
+Upload Logo
+
+Hotel Website
+
+Contact email/phone
+
+Step 4 – Configure Rooms (From Template or Custom)
+If from Template:
+
+Preloaded room types appear → Edit if needed.
+
+If Custom:
+
+Add room types manually.
+
+Define:
+
+Room name
+
+Capacity
+
+Base price per night
+
+Amenities checklist
+
+Step 5 – Configure Facilities & Services
+Facilities (spa, pool, gym, bar, parking)
+
+Services (room service, airport transfer, laundry)
+
+Toggle on/off based on hotel.
+
+Step 6 – Assign Subscription Plan
+Choose Free Trial, Monthly, or Annual
+
+Configure:
+
+Staff limits
+
+Room limits
+
+Feature access (reports, iCal sync, kiosk mode, etc.)
+
+Billing cycle start date.
+
+Step 7 – Domain & Access Setup
+Option 1: Default subdomain → hotelSlug.luxuryhotelsaas.com
+
+Option 2: Custom domain mapping → sunsethotel.com
+
+Auto-generate DNS setup instructions for owner.
+
+Step 8 – Review & Launch
+Preview all settings.
+
+Send welcome email to hotel owner:
+
+Login link
+
+Hotel admin panel URL
+
+Credentials
+
+Quick start guide.
+
+Best Way to Implement This in Super Admin Dashboard
+UI Flow:
+
+Use wizard-style modal (multi-step form with "Next" & "Back" buttons)
+
+Show progress bar at top (e.g., Step 1 of 8)
+
+Save draft after each step to prevent data loss.
+
+Backend Handling:
+
+Create owner first (transaction)
+
+Create hotel record with foreign key to owner
+
+If template → import pre-configured data from hotel_templates table
+
+Assign subscription
+
+Set up subdomain or custom domain mapping
+
+Scalability Notes:
+
+Store templates in database for easy updates
+
+Allow Super Admin to add/edit templates from dashboard

@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
+import { HOTEL_TEMPLATES, getTemplateById } from "@shared/hotel-templates";
 import { 
   Building, 
   User, 
@@ -28,72 +29,57 @@ import {
   Palette
 } from "lucide-react";
 
-interface HotelTemplate {
-  id: string;
+interface RoomTypeData {
   name: string;
-  description: string;
-  icon: any;
-  facilities: string[];
-  roomTypes: Array<{
-    name: string;
-    capacity: number;
-    basePrice: number;
-    amenities: string[];
-  }>;
-  services: string[];
+  capacity: number;
+  basePrice: number;
+  amenities: string[];
 }
 
-const hotelTemplates: HotelTemplate[] = [
-  {
-    id: 'luxury-resort',
-    name: 'Luxury Resort',
-    description: 'High-end resort with premium amenities and services',
-    icon: Crown,
-    facilities: ['Spa', 'Pool', 'Gym', 'Restaurants', 'Villas', 'Beach Access'],
-    roomTypes: [
-      { name: 'Deluxe Suite', capacity: 2, basePrice: 150000, amenities: ['King Bed', 'Ocean View', 'Mini Bar'] },
-      { name: 'Pool Villa', capacity: 4, basePrice: 250000, amenities: ['Private Pool', 'Butler Service', 'Garden View'] },
-      { name: 'Garden View Room', capacity: 2, basePrice: 100000, amenities: ['Queen Bed', 'Garden View', 'Balcony'] }
-    ],
-    services: ['Butler Service', '24/7 Concierge', 'Room Service', 'Spa Treatments', 'Airport Pickup']
-  },
-  {
-    id: 'business-hotel',
-    name: 'Business Hotel',
-    description: 'Professional hotel for business travelers',
-    icon: Briefcase,
-    facilities: ['Conference Hall', 'Meeting Rooms', 'Business Center', 'Gym', 'Restaurant'],
-    roomTypes: [
-      { name: 'Executive Suite', capacity: 2, basePrice: 80000, amenities: ['Work Desk', 'High-Speed WiFi', 'Coffee Machine'] },
-      { name: 'Standard Room', capacity: 2, basePrice: 50000, amenities: ['Queen Bed', 'Work Desk', 'WiFi'] }
-    ],
-    services: ['Express Check-in', 'Airport Pickup', 'Laundry Service', 'Business Center', 'Meeting Facilities']
-  },
-  {
-    id: 'budget-hotel',
-    name: 'Budget Hotel',
-    description: 'Affordable accommodation with essential amenities',
-    icon: Heart,
-    facilities: ['Lobby', 'Parking', 'Free WiFi', 'Reception'],
-    roomTypes: [
-      { name: 'Single Room', capacity: 1, basePrice: 15000, amenities: ['Single Bed', 'WiFi', 'TV'] },
-      { name: 'Double Room', capacity: 2, basePrice: 25000, amenities: ['Double Bed', 'WiFi', 'TV', 'AC'] }
-    ],
-    services: ['Breakfast', 'WiFi', 'Parking', 'Reception']
-  },
-  {
-    id: 'boutique-hotel',
-    name: 'Boutique Hotel',
-    description: 'Unique, stylish hotel with personalized service',
-    icon: Palette,
-    facilities: ['Art Gallery', 'Designer Lobby', 'Rooftop Bar', 'Boutique Shop'],
-    roomTypes: [
-      { name: 'Themed Suite', capacity: 2, basePrice: 120000, amenities: ['Unique Design', 'Premium Amenities', 'City View'] },
-      { name: 'Standard Room', capacity: 2, basePrice: 70000, amenities: ['Designer Furniture', 'Local Art', 'Premium Toiletries'] }
-    ],
-    services: ['Personal Concierge', 'Local Tours', 'Art Curation', 'Bespoke Experiences']
-  }
-];
+interface WizardData {
+  ownerId: string;
+  newOwner: {
+    fullName: string;
+    email: string;
+    username: string;
+    phone: string;
+    password: string;
+  };
+  ownerType: 'existing' | 'new';
+  selectedTemplate: string;
+  hotelInfo: {
+    name: string;
+    slug: string;
+    address: string;
+    city: string;
+    country: string;
+    phone: string;
+    email: string;
+    website: string;
+    totalRooms: number;
+    currency: string;
+    defaultLanguage: string;
+  };
+  roomTypes: RoomTypeData[];
+  facilities: string[];
+  services: string[];
+  subscriptionPlan: string;
+  billingCycle: string;
+  domainType: 'subdomain' | 'custom';
+  customDomain: string;
+  sendWelcomeEmail: boolean;
+}
+
+const iconMap = {
+  Crown,
+  Briefcase, 
+  Heart,
+  Palette
+};
+
+const getIconComponent = (iconName: string) => {
+  return iconMap[iconName as keyof typeof iconMap] || Building;
+};
 
 const subscriptionPlans = [
   {
@@ -132,7 +118,7 @@ interface HotelSetupWizardProps {
 export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
-  const [wizardData, setWizardData] = useState({
+  const [wizardData, setWizardData] = useState<WizardData>({
     // Step 1: Owner Selection
     ownerId: '',
     newOwner: {
@@ -190,10 +176,10 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
   const totalSteps = 8;
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  const updateWizardData = (step: string, data: any) => {
+  const updateWizardData = (step: keyof WizardData, data: any) => {
     setWizardData(prev => ({
       ...prev,
-      [step]: { ...prev[step as keyof typeof prev], ...data }
+      [step]: { ...(prev[step] as any), ...data }
     }));
   };
 
@@ -209,14 +195,29 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
     }
   };
 
-  const handleTemplateSelect = (template: HotelTemplate) => {
-    setWizardData(prev => ({
-      ...prev,
-      selectedTemplate: template.id,
-      roomTypes: template.roomTypes,
-      facilities: template.facilities,
-      services: template.services
-    }));
+  const handleTemplateSelect = (templateId: string) => {
+    const template = getTemplateById(templateId);
+    if (template) {
+      setWizardData(prev => ({
+        ...prev,
+        selectedTemplate: template.id,
+        roomTypes: template.roomTypes.map(room => ({
+          name: room.name,
+          capacity: room.capacity,
+          basePrice: room.basePrice,
+          amenities: room.amenities
+        })),
+        facilities: [...template.facilities],
+        services: [...template.services],
+        hotelInfo: {
+          ...prev.hotelInfo,
+          currency: template.defaultSettings.currency,
+          defaultLanguage: template.defaultSettings.language,
+          totalRooms: prev.hotelInfo.totalRooms || template.roomTypes.length * 5 // Estimate rooms per type
+        },
+        subscriptionPlan: prev.subscriptionPlan || template.recommendedPlan
+      }));
+    }
   };
 
   const handleCreateOwner = async () => {
@@ -261,6 +262,9 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/(^-|-$)/g, '');
 
+      // Get selected plan for staffLimit calculation
+      const selectedPlan = subscriptionPlans.find(p => p.id === wizardData.subscriptionPlan);
+
       // Create hotel
       const hotelData = {
         name: wizardData.hotelInfo.name,
@@ -269,8 +273,14 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
         phone: wizardData.hotelInfo.phone,
         email: wizardData.hotelInfo.email,
         totalRooms: wizardData.hotelInfo.totalRooms,
-        maxStaff: 50, // Default based on subscription
-        description: `${wizardData.selectedTemplate ? hotelTemplates.find(t => t.id === wizardData.selectedTemplate)?.description : 'Modern hotel'} located in ${wizardData.hotelInfo.city}, ${wizardData.hotelInfo.country}`,
+        maxStaff: selectedPlan?.staffLimit === -1 ? 100 : selectedPlan?.staffLimit || 50,
+        description: `${wizardData.selectedTemplate ? getTemplateById(wizardData.selectedTemplate)?.description : 'Modern hotel'} located in ${wizardData.hotelInfo.city}, ${wizardData.hotelInfo.country}`,
+        facilities: wizardData.facilities,
+        services: wizardData.services,
+        amenities: [], // Will be populated from facilities and services
+        currency: wizardData.hotelInfo.currency,
+        defaultLanguage: wizardData.hotelInfo.defaultLanguage,
+        website: wizardData.hotelInfo.website,
         ownerId: wizardData.ownerId,
         status: 'active'
       };
@@ -284,12 +294,16 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
       if (response.ok) {
         const newHotel = await response.json();
         
+        // Get selected plan for success message
+        const selectedPlan = subscriptionPlans.find(p => p.id === wizardData.subscriptionPlan);
+        
         toast({
-          title: "Success!",
-          description: `Hotel "${wizardData.hotelInfo.name}" has been created successfully`
+          title: "🎉 Hotel Created Successfully!",
+          description: `${wizardData.hotelInfo.name} is ready with ${selectedPlan?.name} plan (${wizardData.roomTypes.length} room types configured)`
         });
         
         queryClient.invalidateQueries({ queryKey: ['/api/admin/hotels'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
         onClose();
       } else {
         const errorData = await response.json();
@@ -422,13 +436,13 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              {hotelTemplates.map((template) => {
-                const Icon = template.icon;
+              {HOTEL_TEMPLATES.map((template) => {
+                const Icon = getIconComponent(template.icon);
                 return (
                   <Card 
                     key={template.id}
                     className={`cursor-pointer transition-all ${wizardData.selectedTemplate === template.id ? 'ring-2 ring-blue-500' : ''}`}
-                    onClick={() => handleTemplateSelect(template)}
+                    onClick={() => handleTemplateSelect(template.id)}
                   >
                     <CardContent className="p-4">
                       <div className="flex items-center mb-3">
@@ -450,6 +464,12 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
                                 +{template.facilities.length - 3} more
                               </Badge>
                             )}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-xs font-medium text-gray-500">Room Types:</span>
+                          <div className="text-xs text-gray-600">
+                            {template.roomTypes.length} types • from ₦{Math.min(...template.roomTypes.map(r => r.basePrice)).toLocaleString()}
                           </div>
                         </div>
                       </div>
@@ -881,7 +901,7 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
                   <div><strong>Address:</strong> {wizardData.hotelInfo.address}</div>
                   <div><strong>Rooms:</strong> {wizardData.hotelInfo.totalRooms}</div>
                   <div><strong>Template:</strong> {wizardData.selectedTemplate === 'custom' ? 'Custom Setup' : 
-                    hotelTemplates.find(t => t.id === wizardData.selectedTemplate)?.name || 'None'}</div>
+                    getTemplateById(wizardData.selectedTemplate)?.name || 'None'}</div>
                 </CardContent>
               </Card>
 
