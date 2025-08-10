@@ -26,7 +26,11 @@ import {
   Star,
   Briefcase,
   Heart,
-  Palette
+  Palette,
+  Settings,
+  Upload,
+  Save,
+  Copy
 } from "lucide-react";
 
 interface RoomTypeData {
@@ -59,6 +63,9 @@ interface WizardData {
     totalRooms: number;
     currency: string;
     defaultLanguage: string;
+    latitude?: number;
+    longitude?: number;
+    logoUrl?: string;
   };
   roomTypes: RoomTypeData[];
   facilities: string[];
@@ -118,6 +125,7 @@ interface HotelSetupWizardProps {
 export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const [wizardData, setWizardData] = useState<WizardData>({
     // Step 1: Owner Selection
     ownerId: '',
@@ -183,15 +191,47 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
     }));
   };
 
+  // Save draft data to localStorage
+  const saveDraft = () => {
+    localStorage.setItem('hotel-setup-draft', JSON.stringify({
+      data: wizardData,
+      step: currentStep,
+      timestamp: Date.now()
+    }));
+  };
+
+  // Load draft data on component mount
+  useEffect(() => {
+    const draft = localStorage.getItem('hotel-setup-draft');
+    if (draft) {
+      try {
+        const { data, step, timestamp } = JSON.parse(draft);
+        // Only load if draft is less than 24 hours old
+        if (Date.now() - timestamp < 24 * 60 * 60 * 1000) {
+          setWizardData(data);
+          setCurrentStep(step);
+          toast({
+            title: "Draft Restored",
+            description: "Your previous hotel setup has been restored."
+          });
+        }
+      } catch (error) {
+        console.error('Error loading draft:', error);
+      }
+    }
+  }, []);
+
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
+      saveDraft(); // Save progress after each step
     }
   };
 
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      saveDraft();
     }
   };
 
@@ -218,6 +258,22 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
         subscriptionPlan: prev.subscriptionPlan || template.recommendedPlan
       }));
     }
+  };
+
+  const handleCustomTemplateSelect = () => {
+    setWizardData(prev => ({
+      ...prev,
+      selectedTemplate: 'custom',
+      roomTypes: [],
+      facilities: [],
+      services: [],
+      hotelInfo: {
+        ...prev.hotelInfo,
+        currency: 'NGN',
+        defaultLanguage: 'en'
+      },
+      subscriptionPlan: prev.subscriptionPlan || 'starter'
+    }));
   };
 
   const handleCreateOwner = async () => {
@@ -250,6 +306,7 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
   };
 
   const handleCompleteSetup = async () => {
+    setIsLoading(true);
     try {
       // Create owner if new
       if (wizardData.ownerType === 'new') {
@@ -304,17 +361,24 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
         
         queryClient.invalidateQueries({ queryKey: ['/api/admin/hotels'] });
         queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+        
+        // Clear draft after successful creation
+        localStorage.removeItem('hotel-setup-draft');
+        
         onClose();
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create hotel');
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to create hotel');
       }
-    } catch (error: any) {
+    } catch (error) {
+      console.error('Error creating hotel:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to complete hotel setup",
-        variant: "destructive"
+        description: error instanceof Error ? error.message : "Failed to create hotel",
+        variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -477,18 +541,42 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
                   </Card>
                 );
               })}
+              
+              {/* Custom Template Option */}
+              <Card 
+                className={`cursor-pointer transition-all ${wizardData.selectedTemplate === 'custom' ? 'ring-2 ring-blue-500' : ''}`}
+                onClick={() => handleCustomTemplateSelect()}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center mb-3">
+                    <Settings className="w-6 h-6 text-purple-600 mr-2" />
+                    <h4 className="font-medium">Custom Setup</h4>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-3">Start with a blank template and configure everything manually</p>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-xs font-medium text-gray-500">Configuration:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          Blank Setup
+                        </Badge>
+                        <Badge variant="outline" className="text-xs">
+                          Full Control
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-500">Ideal for:</span>
+                      <div className="text-xs text-gray-600">
+                        Unique hotels with specific requirements
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            <Card 
-              className={`cursor-pointer transition-all ${wizardData.selectedTemplate === 'custom' ? 'ring-2 ring-blue-500' : ''}`}
-              onClick={() => setWizardData(prev => ({ ...prev, selectedTemplate: 'custom', roomTypes: [], facilities: [], services: [] }))}
-            >
-              <CardContent className="p-4 text-center">
-                <Palette className="w-8 h-8 text-purple-600 mx-auto mb-2" />
-                <h4 className="font-medium">Custom Setup</h4>
-                <p className="text-sm text-gray-600">Configure everything from scratch</p>
-              </CardContent>
-            </Card>
+
           </div>
         );
 
@@ -602,6 +690,37 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
                   value={wizardData.hotelInfo.website}
                   onChange={(e) => updateWizardData('hotelInfo', { website: e.target.value })}
                   placeholder="https://grandlagos.com"
+                />
+              </div>
+              
+              <div className="col-span-2 space-y-2">
+                <Label>Hotel Logo (Optional)</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <Upload className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-600 mb-2">Upload hotel logo</p>
+                  <p className="text-xs text-gray-500">PNG, JPG up to 2MB</p>
+                  <Button variant="outline" size="sm" className="mt-2">
+                    Choose File
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>GPS Latitude (Optional)</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="6.5244"
+                  onChange={(e) => updateWizardData('hotelInfo', { latitude: parseFloat(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>GPS Longitude (Optional)</Label>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="3.3792"
+                  onChange={(e) => updateWizardData('hotelInfo', { longitude: parseFloat(e.target.value) })}
                 />
               </div>
             </div>
