@@ -51,7 +51,7 @@ import {
   HardDrive,
   X
 } from "lucide-react";
-import HotelSetupWizard from "@/components/hotel-setup-wizard";
+import { HotelSetupWizard } from "@/components/hotel-setup-wizard-fixed";
 
 interface SystemStats {
   totalHotels: number;
@@ -144,10 +144,10 @@ export default function EnhancedSuperAdminDashboard() {
     dbUsage: 0
   };
 
-  const stats = systemStats || defaultStats;
+  const stats = (systemStats as SystemStats) || defaultStats;
 
   // Filter hotels based on search and status
-  const filteredHotels = (hotels as any[]).filter((hotel: any) => {
+  const filteredHotels = (hotels as any[] || []).filter((hotel: any) => {
     const matchesSearch = !searchQuery || 
       hotel.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       hotel.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -225,7 +225,7 @@ export default function EnhancedSuperAdminDashboard() {
         status: formData.get('status') as string,
       };
 
-      const response = await fetch(`/api/admin/hotels/${editingHotel.id}`, {
+      const response = await fetch(`/api/admin/hotels/${editingHotel?.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(hotelData)
@@ -648,7 +648,7 @@ export default function EnhancedSuperAdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {revenueData.map((data, index) => (
+                      {(revenueData as any[] || []).map((data: any, index: number) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div>
                             <p className="font-medium">{data.month} 2025</p>
@@ -793,7 +793,7 @@ export default function EnhancedSuperAdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {supportTickets.map((ticket) => (
+                        {(supportTickets as any[] || []).map((ticket: any) => (
                           <div key={ticket.id} className="border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center space-x-2">
@@ -1804,7 +1804,7 @@ export default function EnhancedSuperAdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {subscriptionPlans.map((plan) => (
+                        {(subscriptionPlans as any[] || []).map((plan: any) => (
                           <div key={plan.id} className="border rounded-lg p-4">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-bold text-lg">{plan.name}</h4>
@@ -1938,7 +1938,7 @@ export default function EnhancedSuperAdminDashboard() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {hotels.slice(0, 5).map((hotel) => (
+                        {(hotels as any[] || []).slice(0, 5).map((hotel: any) => (
                           <div key={hotel.id} className="p-4 border rounded-lg">
                             <div className="flex items-center justify-between mb-2">
                               <h4 className="font-medium">{hotel.name}</h4>
@@ -2012,7 +2012,7 @@ export default function EnhancedSuperAdminDashboard() {
                     <div className="text-center">
                       <Building className="h-12 w-12 text-purple-600 mx-auto mb-2" />
                       <p className="text-sm text-gray-600">Active Hotels</p>
-                      <p className="text-3xl font-bold text-purple-600">{hotels.length}</p>
+                      <p className="text-3xl font-bold text-purple-600">{(hotels as any[] || []).length}</p>
                       <p className="text-sm text-purple-600">+3 new this month</p>
                     </div>
                   </CardContent>
@@ -2037,7 +2037,7 @@ export default function EnhancedSuperAdminDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {hotels.slice(0, 5).map((hotel, index) => (
+                      {(hotels as any[] || []).slice(0, 5).map((hotel: any, index: number) => (
                         <div key={hotel.id} className="flex items-center justify-between">
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-bold text-blue-600">

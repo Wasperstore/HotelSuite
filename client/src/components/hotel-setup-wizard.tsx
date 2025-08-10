@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
-import { HOTEL_TEMPLATES, getTemplateById } from "@shared/hotel-templates";
+import { HOTEL_TEMPLATES, getTemplateById } from "../../../shared/hotel-templates";
 import { 
   Building, 
   User, 
@@ -525,89 +525,371 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <Star className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <Crown className="w-12 h-12 text-purple-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">Choose Hotel Template</h3>
-              <p className="text-gray-600">Select a template to pre-configure your hotel</p>
+              <p className="text-gray-600">Select a template to get started quickly or customize from scratch</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {HOTEL_TEMPLATES.map((template) => {
-                const Icon = getIconComponent(template.icon);
+                const IconComponent = getIconComponent(template.icon);
                 return (
                   <Card 
                     key={template.id}
-                    className={`cursor-pointer transition-all ${wizardData.selectedTemplate === template.id ? 'ring-2 ring-blue-500' : ''}`}
+                    className={`cursor-pointer transition-all hover:shadow-lg ${wizardData.selectedTemplate === template.id ? 'ring-2 ring-blue-500' : ''}`}
                     onClick={() => handleTemplateSelect(template.id)}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center mb-3">
-                        <Icon className="w-6 h-6 text-blue-600 mr-2" />
-                        <h4 className="font-medium">{template.name}</h4>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-3">{template.description}</p>
-                      <div className="space-y-2">
-                        <div>
-                          <span className="text-xs font-medium text-gray-500">Facilities:</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {template.facilities.slice(0, 3).map((facility) => (
-                              <Badge key={facility} variant="secondary" className="text-xs">
-                                {facility}
-                              </Badge>
-                            ))}
-                            {template.facilities.length > 3 && (
-                              <Badge variant="secondary" className="text-xs">
-                                +{template.facilities.length - 3} more
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div>
-                          <span className="text-xs font-medium text-gray-500">Room Types:</span>
-                          <div className="text-xs text-gray-600">
-                            {template.roomTypes.length} types • from ₦{Math.min(...template.roomTypes.map(r => r.basePrice)).toLocaleString()}
-                          </div>
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <IconComponent className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                        <h4 className="font-semibold text-lg mb-2">{template.name}</h4>
+                        <p className="text-sm text-gray-600 mb-4">{template.description}</p>
+                        <Badge variant="secondary" className="mb-2">
+                          {template.category.charAt(0).toUpperCase() + template.category.slice(1)}
+                        </Badge>
+                        <div className="text-xs text-gray-500 mt-2 space-y-1">
+                          <div>{template.roomTypes.length} Room Types</div>
+                          <div>{template.facilities.length} Facilities</div>
+                          <div>₦{template.roomTypes[0]?.basePrice.toLocaleString()}/night starting</div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
-              
-              {/* Custom Template Option */}
+
               <Card 
-                className={`cursor-pointer transition-all ${wizardData.selectedTemplate === 'custom' ? 'ring-2 ring-blue-500' : ''}`}
-                onClick={() => handleCustomTemplateSelect()}
+                className={`cursor-pointer transition-all hover:shadow-lg border-dashed border-2 ${wizardData.selectedTemplate === 'custom' ? 'ring-2 ring-blue-500 border-blue-500' : 'border-gray-300'}`}
+                onClick={handleCustomTemplateSelect}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center mb-3">
-                    <Settings className="w-6 h-6 text-purple-600 mr-2" />
-                    <h4 className="font-medium">Custom Setup</h4>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-3">Start with a blank template and configure everything manually</p>
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-xs font-medium text-gray-500">Configuration:</span>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          Blank Setup
-                        </Badge>
-                        <Badge variant="outline" className="text-xs">
-                          Full Control
-                        </Badge>
-                      </div>
-                    </div>
-                    <div>
-                      <span className="text-xs font-medium text-gray-500">Ideal for:</span>
-                      <div className="text-xs text-gray-600">
-                        Unique hotels with specific requirements
-                      </div>
+                <CardContent className="p-6">
+                  <div className="text-center">
+                    <Settings className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                    <h4 className="font-semibold text-lg mb-2">Custom Setup</h4>
+                    <p className="text-sm text-gray-600 mb-4">Start from scratch and configure everything manually</p>
+                    <Badge variant="outline" className="mb-2">
+                      Flexible
+                    </Badge>
+                    <div className="text-xs text-gray-500 mt-2">
+                      <div>Full control over configuration</div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
+            {wizardData.selectedTemplate && wizardData.selectedTemplate !== 'custom' && (
+              <Card className="bg-blue-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-lg">Template Preview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {(() => {
+                    const template = getTemplateById(wizardData.selectedTemplate);
+                    return template ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                          <h5 className="font-medium mb-2">Room Types</h5>
+                          <div className="space-y-2">
+                            {template.roomTypes.map((room, index) => (
+                              <div key={index} className="p-2 bg-white rounded border">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">{room.name}</span>
+                                  <span className="text-sm text-green-600">₦{room.basePrice.toLocaleString()}/night</span>
+                                </div>
+                                <p className="text-xs text-gray-600">Capacity: {room.capacity} guests</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <h5 className="font-medium mb-2">Included Features</h5>
+                          <div className="space-y-2">
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Facilities:</p>
+                              <p className="text-sm text-gray-600">{template.facilities.join(', ')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Services:</p>
+                              <p className="text-sm text-gray-600">{template.services.join(', ')}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-gray-700">Recommended Plan:</p>
+                              <Badge variant="secondary">{subscriptionPlans.find(p => p.id === template.recommendedPlan)?.name || 'Professional'}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null;
+                  })()}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        );
 
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Building className="w-12 h-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Hotel Details</h3>
+              <p className="text-gray-600">Basic information about your hotel</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Hotel Name *</Label>
+                  <Input
+                    value={wizardData.hotelInfo.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      const slug = name.toLowerCase()
+                        .replace(/[^a-z0-9]+/g, '-')
+                        .replace(/(^-|-$)/g, '');
+                      updateWizardData('hotelInfo', { name, slug });
+                    }}
+                    placeholder="Grand Paradise Resort"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Hotel Slug *</Label>
+                  <Input
+                    value={wizardData.hotelInfo.slug}
+                    onChange={(e) => updateWizardData('hotelInfo', { slug: e.target.value })}
+                    placeholder="grand-paradise-resort"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Your hotel will be accessible at: {wizardData.hotelInfo.slug}.luxuryhotelsaas.com
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Address *</Label>
+                <Input
+                  value={wizardData.hotelInfo.address}
+                  onChange={(e) => updateWizardData('hotelInfo', { address: e.target.value })}
+                  placeholder="123 Paradise Street, Victoria Island"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>City *</Label>
+                  <Input
+                    value={wizardData.hotelInfo.city}
+                    onChange={(e) => updateWizardData('hotelInfo', { city: e.target.value })}
+                    placeholder="Lagos"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Country *</Label>
+                  <Select 
+                    value={wizardData.hotelInfo.country} 
+                    onValueChange={(value) => updateWizardData('hotelInfo', { country: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Nigeria">Nigeria</SelectItem>
+                      <SelectItem value="Ghana">Ghana</SelectItem>
+                      <SelectItem value="Kenya">Kenya</SelectItem>
+                      <SelectItem value="South Africa">South Africa</SelectItem>
+                      <SelectItem value="Egypt">Egypt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Total Rooms *</Label>
+                  <Input
+                    type="number"
+                    value={wizardData.hotelInfo.totalRooms || ''}
+                    onChange={(e) => updateWizardData('hotelInfo', { totalRooms: parseInt(e.target.value) || 0 })}
+                    placeholder="50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Phone *</Label>
+                  <Input
+                    value={wizardData.hotelInfo.phone}
+                    onChange={(e) => updateWizardData('hotelInfo', { phone: e.target.value })}
+                    placeholder="+234 123 456 7890"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Email *</Label>
+                  <Input
+                    type="email"
+                    value={wizardData.hotelInfo.email}
+                    onChange={(e) => updateWizardData('hotelInfo', { email: e.target.value })}
+                    placeholder="info@grandparadise.com"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Website</Label>
+                  <Input
+                    value={wizardData.hotelInfo.website}
+                    onChange={(e) => updateWizardData('hotelInfo', { website: e.target.value })}
+                    placeholder="https://www.grandparadise.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Currency</Label>
+                  <Select 
+                    value={wizardData.hotelInfo.currency} 
+                    onValueChange={(value) => updateWizardData('hotelInfo', { currency: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>
+                      <SelectItem value="USD">US Dollar ($)</SelectItem>
+                      <SelectItem value="GHS">Ghanaian Cedi (₵)</SelectItem>
+                      <SelectItem value="KES">Kenyan Shilling (KSh)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Hotel Logo</Label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <Upload className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600 mb-2">Drag & drop your logo here, or click to browse</p>
+                  <Button variant="outline" size="sm">
+                    Choose File
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Bed className="w-12 h-12 text-orange-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold mb-2">Room Configuration</h3>
+              <p className="text-gray-600">Define your room types and pricing</p>
+            </div>
+
+            <div className="space-y-6">
+              {wizardData.roomTypes.map((room, index) => (
+                <Card key={index} className="border-l-4 border-l-blue-500">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">Room Type #{index + 1}</CardTitle>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          const newRoomTypes = wizardData.roomTypes.filter((_, i) => i !== index);
+                          setWizardData(prev => ({ ...prev, roomTypes: newRoomTypes }));
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label>Room Name *</Label>
+                        <Input
+                          value={room.name}
+                          onChange={(e) => {
+                            const newRoomTypes = [...wizardData.roomTypes];
+                            newRoomTypes[index].name = e.target.value;
+                            setWizardData(prev => ({ ...prev, roomTypes: newRoomTypes }));
+                          }}
+                          placeholder="Deluxe Suite"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Capacity (Guests) *</Label>
+                        <Input
+                          type="number"
+                          value={room.capacity}
+                          onChange={(e) => {
+                            const newRoomTypes = [...wizardData.roomTypes];
+                            newRoomTypes[index].capacity = parseInt(e.target.value) || 1;
+                            setWizardData(prev => ({ ...prev, roomTypes: newRoomTypes }));
+                          }}
+                          placeholder="2"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Base Price ({wizardData.hotelInfo.currency}) *</Label>
+                        <Input
+                          type="number"
+                          value={room.basePrice}
+                          onChange={(e) => {
+                            const newRoomTypes = [...wizardData.roomTypes];
+                            newRoomTypes[index].basePrice = parseFloat(e.target.value) || 0;
+                            setWizardData(prev => ({ ...prev, roomTypes: newRoomTypes }));
+                          }}
+                          placeholder="25000"
+                        />
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <Label>Amenities</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {['WiFi', 'AC', 'TV', 'Mini Bar', 'Balcony', 'Ocean View', 'Room Service', 'Safe', 'Hair Dryer', 'Bathtub'].map((amenity) => (
+                          <Button
+                            key={amenity}
+                            variant={room.amenities.includes(amenity) ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => {
+                              const newRoomTypes = [...wizardData.roomTypes];
+                              if (newRoomTypes[index].amenities.includes(amenity)) {
+                                newRoomTypes[index].amenities = newRoomTypes[index].amenities.filter(a => a !== amenity);
+                              } else {
+                                newRoomTypes[index].amenities.push(amenity);
+                              }
+                              setWizardData(prev => ({ ...prev, roomTypes: newRoomTypes }));
+                            }}
+                          >
+                            {amenity}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+
+              <Card className="border-dashed border-2 border-gray-300">
+                <CardContent className="p-6">
+                  <Button 
+                    variant="outline" 
+                    className="w-full h-16"
+                    onClick={() => {
+                      const newRoom: RoomTypeData = {
+                        name: '',
+                        capacity: 2,
+                        basePrice: 0,
+                        amenities: []
+                      };
+                      setWizardData(prev => ({ ...prev, roomTypes: [...prev.roomTypes, newRoom] }));
+                    }}
+                  >
+                    <Building className="w-6 h-6 mr-2" />
+                    Add Room Type
+                  </Button>
+                </CardContent>
+              </Card>
           </div>
         );
 
@@ -758,156 +1040,87 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
           </div>
         );
 
-      case 4:
-        return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Bed className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Room Configuration</h3>
-              <p className="text-gray-600">
-                {wizardData.selectedTemplate !== 'custom' ? 'Review and adjust room types from your template' : 'Add your room types'}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {wizardData.roomTypes.map((room: any, index: number) => (
-                <Card key={index}>
-                  <CardContent className="p-4">
-                    <div className="grid grid-cols-4 gap-4 items-end">
-                      <div>
-                        <Label>Room Name</Label>
-                        <Input
-                          value={room.name}
-                          onChange={(e) => {
-                            const newRooms = [...wizardData.roomTypes];
-                            newRooms[index] = { ...room, name: e.target.value };
-                            setWizardData(prev => ({ ...prev, roomTypes: newRooms }));
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label>Capacity</Label>
-                        <Input
-                          type="number"
-                          value={room.capacity}
-                          onChange={(e) => {
-                            const newRooms = [...wizardData.roomTypes];
-                            newRooms[index] = { ...room, capacity: parseInt(e.target.value) || 0 };
-                            setWizardData(prev => ({ ...prev, roomTypes: newRooms }));
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label>Base Price ({wizardData.hotelInfo.currency})</Label>
-                        <Input
-                          type="number"
-                          value={room.basePrice}
-                          onChange={(e) => {
-                            const newRooms = [...wizardData.roomTypes];
-                            newRooms[index] = { ...room, basePrice: parseInt(e.target.value) || 0 };
-                            setWizardData(prev => ({ ...prev, roomTypes: newRooms }));
-                          }}
-                        />
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => {
-                          const newRooms = wizardData.roomTypes.filter((_, i) => i !== index);
-                          setWizardData(prev => ({ ...prev, roomTypes: newRooms }));
-                        }}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                    <div className="mt-2">
-                      <div className="flex flex-wrap gap-1">
-                        {room.amenities.map((amenity: string, amenityIndex: number) => (
-                          <Badge key={amenityIndex} variant="secondary" className="text-xs">
-                            {amenity}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  const newRoom = {
-                    name: '',
-                    capacity: 2,
-                    basePrice: 50000,
-                    amenities: ['WiFi', 'TV', 'AC']
-                  };
-                  setWizardData(prev => ({ ...prev, roomTypes: [...prev.roomTypes, newRoom] }));
-                }}
-                className="w-full"
-              >
-                Add Room Type
-              </Button>
-            </div>
-          </div>
-        );
-
       case 5:
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <Coffee className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+              <Coffee className="w-12 h-12 text-brown-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold mb-2">Facilities & Services</h3>
-              <p className="text-gray-600">Configure what your hotel offers</p>
+              <p className="text-gray-600">Select what your hotel offers</p>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium mb-3">Facilities</h4>
-                <div className="grid grid-cols-2 gap-2">
-                  {['Spa', 'Pool', 'Gym', 'Restaurant', 'Bar', 'Parking', 'WiFi', 'Conference Hall', 'Business Center', 'Beach Access', 'Garden', 'Playground'].map((facility) => (
-                    <label key={facility} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={wizardData.facilities.includes(facility)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setWizardData(prev => ({ ...prev, facilities: [...prev.facilities, facility] }));
-                          } else {
-                            setWizardData(prev => ({ ...prev, facilities: prev.facilities.filter(f => f !== facility) }));
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{facility}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Building className="w-5 h-5 mr-2" />
+                    Facilities
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {[
+                      'Swimming Pool', 'Spa', 'Fitness Center', 'Restaurant', 'Bar', 'Conference Hall',
+                      'Business Center', 'Parking', 'Garden', 'Rooftop Terrace', 'Kids Play Area',
+                      'Library', 'Gift Shop', 'ATM', 'Currency Exchange', 'Car Rental'
+                    ].map((facility) => (
+                      <label key={facility} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={wizardData.facilities.includes(facility)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setWizardData(prev => ({ ...prev, facilities: [...prev.facilities, facility] }));
+                            } else {
+                              setWizardData(prev => ({ ...prev, facilities: prev.facilities.filter(f => f !== facility) }));
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{facility}</span>
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-              <div>
-                <h4 className="font-medium mb-3">Services</h4>
-                <div className="grid grid-cols-1 gap-2">
-                  {['Room Service', 'Laundry', 'Airport Pickup', 'Concierge', 'Butler Service', 'Spa Treatments', 'Tour Booking', 'Car Rental', 'Breakfast', 'Express Check-in'].map((service) => (
-                    <label key={service} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={wizardData.services.includes(service)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setWizardData(prev => ({ ...prev, services: [...prev.services, service] }));
-                          } else {
-                            setWizardData(prev => ({ ...prev, services: prev.services.filter(s => s !== service) }));
-                          }
-                        }}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{service}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Heart className="w-5 h-5 mr-2" />
+                    Services
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {[
+                      '24/7 Concierge', 'Room Service', 'Laundry', 'Airport Transfer', 'Tour Services',
+                      'Babysitting', 'Medical Services', 'Luggage Storage', 'Wake-up Service',
+                      'Newspaper Delivery', 'Shoe Shine', 'Butler Service', 'Personal Shopping',
+                      'Event Planning', 'Photography', 'Translation Services'
+                    ].map((service) => (
+                      <label key={service} className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={wizardData.services.includes(service)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setWizardData(prev => ({ ...prev, services: [...prev.services, service] }));
+                            } else {
+                              setWizardData(prev => ({ ...prev, services: prev.services.filter(s => s !== service) }));
+                            }
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{service}</span>
+                      </label>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+
+
           </div>
         );
 
