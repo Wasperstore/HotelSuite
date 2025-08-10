@@ -30,7 +30,8 @@ import {
   Settings,
   Upload,
   Save,
-  Copy
+  Copy,
+  UserPlus
 } from "lucide-react";
 
 interface RoomTypeData {
@@ -212,8 +213,11 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
           setCurrentStep(step);
           toast({
             title: "Draft Restored",
-            description: "Your previous hotel setup has been restored."
+            description: `Your hotel setup progress from ${new Date(timestamp).toLocaleString()} has been restored.`
           });
+        } else {
+          // Clean up old drafts
+          localStorage.removeItem('hotel-setup-draft');
         }
       } catch (error) {
         console.error('Error loading draft:', error);
@@ -418,23 +422,50 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
             </div>
 
             {wizardData.ownerType === 'existing' && (
-              <div className="space-y-2">
-                <Label>Select Existing Owner</Label>
-                <Select 
-                  value={wizardData.ownerId} 
-                  onValueChange={(value) => setWizardData(prev => ({ ...prev, ownerId: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose an unassigned owner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {unassignedOwners.map((owner: any) => (
-                      <SelectItem key={owner.id} value={owner.id}>
-                        {owner.fullName} - {owner.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Search & Select Hotel Owner</Label>
+                  <Select 
+                    value={wizardData.ownerId} 
+                    onValueChange={(value) => setWizardData(prev => ({ ...prev, ownerId: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Search and choose an existing owner" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unassignedOwners.map((owner: any) => (
+                        <SelectItem key={owner.id} value={owner.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{owner.fullName}</span>
+                            <span className="text-sm text-gray-500">{owner.email}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {wizardData.ownerId && (
+                  <Card className="bg-blue-50 border-blue-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">Selected Owner Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      {(() => {
+                        const selectedOwner = unassignedOwners.find((o: any) => o.id === wizardData.ownerId);
+                        return selectedOwner ? (
+                          <div className="space-y-1 text-sm">
+                            <div><strong>Name:</strong> {selectedOwner.fullName}</div>
+                            <div><strong>Email:</strong> {selectedOwner.email}</div>
+                            <div><strong>Username:</strong> {selectedOwner.username}</div>
+                            <div><strong>Account Created:</strong> {new Date(selectedOwner.createdAt).toLocaleDateString()}</div>
+                            <div><strong>Status:</strong> <Badge variant="secondary">Available for Hotel Assignment</Badge></div>
+                          </div>
+                        ) : null;
+                      })()}
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             )}
 
@@ -1099,9 +1130,15 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
               <CardTitle>Hotel Setup Wizard</CardTitle>
               <p className="text-sm text-gray-600">Step {currentStep} of {totalSteps}</p>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
-              <X className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              <div className="flex items-center text-xs text-gray-500">
+                <Save className="w-3 h-3 mr-1" />
+                Auto-saving progress
+              </div>
+              <Button variant="ghost" size="sm" onClick={onClose}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
           <Progress value={progressPercentage} className="w-full" />
         </CardHeader>
@@ -1132,11 +1169,20 @@ export default function HotelSetupWizard({ onClose }: HotelSetupWizardProps) {
             ) : (
               <Button 
                 onClick={handleCompleteSetup}
-                disabled={!canProceed()}
+                disabled={!canProceed() || isLoading}
                 className="bg-green-600 hover:bg-green-700"
               >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Create Hotel
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                    Creating Hotel...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Create Hotel
+                  </>
+                )}
               </Button>
             )}
           </div>
