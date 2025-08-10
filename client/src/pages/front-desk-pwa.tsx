@@ -34,6 +34,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Room, Booking, User } from "@shared/schema";
+import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
 import { useState, useEffect } from "react";
 import React from "react";
 

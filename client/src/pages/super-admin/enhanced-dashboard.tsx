@@ -15,6 +15,7 @@ import {
   insertHotelSchema, 
   insertUserSchema 
 } from "@shared/schema";
+import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
 import { 
   Building, 
   Users, 

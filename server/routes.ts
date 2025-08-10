@@ -40,6 +40,35 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Update hotel logo
+  app.patch("/api/hotels/:hotelId/logo", async (req, res, next) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const { hotelId } = req.params;
+      const { logoUrl } = req.body;
+
+      // Validate user has permission to update this hotel
+      const userRole = req.user?.role;
+      const userHotelId = req.user?.hotelId;
+
+      if (userRole === "SUPER_ADMIN" || userRole === "DEVELOPER_ADMIN") {
+        // Super admins can update any hotel
+      } else if (userRole === "HOTEL_OWNER" && userHotelId === hotelId) {
+        // Hotel owners can update their own hotel
+      } else {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updatedHotel = await storage.updateHotelLogo(hotelId, logoUrl);
+      res.json(updatedHotel);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   app.post("/api/admin/hotels", async (req, res, next) => {
     try {
       if (!req.isAuthenticated() || (req.user?.role !== "SUPER_ADMIN" && req.user?.role !== "DEVELOPER_ADMIN")) {

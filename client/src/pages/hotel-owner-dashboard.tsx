@@ -37,6 +37,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Hotel, Room, Booking, GeneratorLog, User } from "@shared/schema";
+import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
 import { useState, useEffect } from "react";
 
 const createRoomSchema = z.object({
@@ -240,9 +241,7 @@ export default function HotelOwnerDashboard() {
       <div className="w-64 bg-gray-900 text-white">
         <div className="p-6">
           <div className="flex items-center space-x-2 mb-8">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <HotelIcon className="text-white text-sm" />
-            </div>
+            <HotelLogo hotel={hotel} size="sm" />
             <div>
               <span className="font-semibold block">{hotel?.name}</span>
               <span className="text-xs text-gray-400">Hotel Owner</span>
@@ -319,10 +318,12 @@ export default function HotelOwnerDashboard() {
       <div className="flex-1 p-6">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Hotel Dashboard</h1>
-            <p className="text-gray-600">{currentDate}</p>
-          </div>
+          <DashboardHeader 
+            hotel={hotel} 
+            title="Hotel Dashboard"
+            subtitle={currentDate}
+            editable={true}
+          />
           <div className="flex space-x-2">
             <Dialog open={showCreateRoom} onOpenChange={setShowCreateRoom}>
               <DialogTrigger asChild>

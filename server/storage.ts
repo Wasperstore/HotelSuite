@@ -19,6 +19,7 @@ export interface IStorage {
   getHotelBySlug(slug: string): Promise<Hotel | undefined>;
   createHotel(hotel: InsertHotel): Promise<Hotel>;
   updateHotel(id: string, updates: Partial<InsertHotel>): Promise<Hotel>;
+  updateHotelLogo(id: string, logoUrl: string): Promise<Hotel>;
   deleteHotel(id: string): Promise<void>;
   getHotels(): Promise<Hotel[]>;
   
@@ -129,6 +130,15 @@ export class DatabaseStorage implements IStorage {
     const [hotel] = await db
       .update(hotels)
       .set(updates)
+      .where(eq(hotels.id, id))
+      .returning();
+    return hotel;
+  }
+
+  async updateHotelLogo(id: string, logoUrl: string): Promise<Hotel> {
+    const [hotel] = await db
+      .update(hotels)
+      .set({ logoUrl })
       .where(eq(hotels.id, id))
       .returning();
     return hotel;
