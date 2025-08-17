@@ -254,7 +254,7 @@ export default function TenantDashboard() {
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 {hotel.name}. All rights reserved. Powered by LuxuryHotelSaaS.</p>
+            <p>&copy; 2025 {hotel.name}. All rights reserved. Powered by wasper.</p>
           </div>
         </div>
       </footer>

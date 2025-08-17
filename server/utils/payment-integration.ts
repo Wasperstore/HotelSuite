@@ -164,7 +164,7 @@ class PaymentService {
           phonenumber: request.customerPhone
         },
         customizations: {
-          title: 'LuxuryHotelSaaS',
+          title: 'wasper',
           description: request.description,
           logo: 'https://luxuryhotelsaas.com/logo.png'
         },

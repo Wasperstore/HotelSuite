@@ -38,7 +38,7 @@ export async function generateICalFeed(hotelId: string): Promise<string> {
   let ical = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//LuxuryHotelSaaS//Hotel Management//EN',
+    'PRODID:-//wasper//Hotel Management//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     `X-WR-CALNAME:${hotel.name} - Bookings`,

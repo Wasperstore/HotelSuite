@@ -48,7 +48,7 @@ export default function HomePage() {
                 <Hotel className="text-white text-sm" />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                LuxuryHotelSaaS
+                wasper
               </span>
             </div>
             <div className="flex items-center space-x-4">
@@ -417,7 +417,7 @@ export default function HomePage() {
                 <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <Hotel className="text-white text-sm" />
                 </div>
-                <span className="text-xl font-bold">LuxuryHotelSaaS</span>
+                <span className="text-xl font-bold">wasper</span>
               </div>
               <p className="text-gray-400 mb-4 max-w-md">
                 The first hotel management platform built specifically for African hotels. 
@@ -455,7 +455,7 @@ export default function HomePage() {
           </div>
 
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 LuxuryHotelSaaS. All rights reserved. Built for African hospitality.</p>
+            <p>&copy; 2025 wasper. All rights reserved. Built for African hospitality.</p>
           </div>
         </div>
       </footer>

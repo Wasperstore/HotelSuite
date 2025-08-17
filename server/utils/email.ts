@@ -47,7 +47,7 @@ export function createInviteEmail(params: {
     <body>
         <div class="container">
             <div class="header">
-                <h1>🏨 Welcome to LuxuryHotelSaaS</h1>
+                <h1>🏨 Welcome to wasper</h1>
                 <p>Your hotel management journey begins here</p>
             </div>
             
@@ -79,7 +79,7 @@ export function createInviteEmail(params: {
             </div>
             
             <div class="footer">
-                <p>This invitation was sent by ${hotelName} via LuxuryHotelSaaS</p>
+                <p>This invitation was sent by ${hotelName} via wasper</p>
                 <p>If you didn't expect this invitation, please ignore this email.</p>
             </div>
         </div>
@@ -88,7 +88,7 @@ export function createInviteEmail(params: {
   `;
   
   const text = `
-Welcome to LuxuryHotelSaaS!
+Welcome to wasper!
 
 Hello ${recipientName},
 
@@ -109,7 +109,7 @@ What's next:
 
 If you have any questions, please reach out to your hotel administrator.
 
-This invitation was sent by ${hotelName} via LuxuryHotelSaaS.
+This invitation was sent by ${hotelName} via wasper.
 If you didn't expect this invitation, please ignore this email.
   `;
   
@@ -123,7 +123,7 @@ export function createPasswordResetEmail(params: {
 }): EmailTemplate {
   const { recipientName, resetLink, hotelName } = params;
   
-  const subject = `Password Reset - ${hotelName || 'LuxuryHotelSaaS'}`;
+  const subject = `Password Reset - ${hotelName || 'wasper'}`;
   
   const html = `
     <!DOCTYPE html>
@@ -164,7 +164,7 @@ export function createPasswordResetEmail(params: {
             </div>
             
             <div class="footer">
-                <p>This email was sent by ${hotelName || 'LuxuryHotelSaaS'}</p>
+                <p>This email was sent by ${hotelName || 'wasper'}</p>
                 <p>Do not reply to this email.</p>
             </div>
         </div>
@@ -173,7 +173,7 @@ export function createPasswordResetEmail(params: {
   `;
   
   const text = `
-Password Reset - ${hotelName || 'LuxuryHotelSaaS'}
+Password Reset - ${hotelName || 'wasper'}
 
 Hello ${recipientName},
 
@@ -187,7 +187,7 @@ If you didn't request this password reset, please ignore this email. Your passwo
 
 For security questions, contact your administrator.
 
-This email was sent by ${hotelName || 'LuxuryHotelSaaS'}.
+This email was sent by ${hotelName || 'wasper'}.
 Do not reply to this email.
   `;
   
