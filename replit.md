@@ -146,4 +146,3 @@ Preferred communication style: Simple, everyday language.
 - **Session Management**: PostgreSQL-based session store with connect-pg-simple
 - **PWA Functionality**: Service worker for offline operations during outages
 - **Multi-tenant Architecture**: Complete tenant isolation with hotel-based routing
-testing
