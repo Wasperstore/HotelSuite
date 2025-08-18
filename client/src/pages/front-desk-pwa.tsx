@@ -1,8 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useQuery, useMutation } from "@tanstack/react-query";
 import { 
   Wifi, 
   WifiOff, 
@@ -25,15 +31,6 @@ import {
   Settings,
   ChevronDown
 } from "lucide-react";
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -41,45 +38,13 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
-import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
-
 import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import type { Room, Booking, User } from "@shared/schema";
-
-type CheckInData = z.infer<typeof checkInSchema>;
-type CheckOutData = z.infer<typeof checkOutSchema>;
-
-const checkInSchema = z.object({
-  guestName: z.string().min(2, "Guest name is required"),
-  guestEmail: z.string().email("Valid email required"),
-  guestPhone: z.string().min(10, "Valid phone number required"),
-  roomId: z.string().min(1, "Room selection required"),
-  numberOfGuests: z.number().min(1, "At least one guest required"),
-  specialRequests: z.string().optional(),
-});
-
-const checkOutSchema = z.object({
-  bookingId: z.string().min(1, "Booking selection required"),
-  totalBill: z.number().min(0, "Total bill must be 0 or greater"),
-  paymentMethod: z.enum(["CASH", "CARD", "TRANSFER", "PAYSTACK"]),
-});
-
-interface CheckInData {
-  guestName: string;
-  guestEmail: string;
-  guestPhone: string;
-  roomId: string;
-  numberOfGuests: number;
-  specialRequests?: string;
-}
-
-interface CheckOutData {
-  bookingId: string;
-  totalBill: number;
-  paymentMethod: 'CASH' | 'CARD' | 'TRANSFER' | 'PAYSTACK';
-}
+import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
+import { useState, useEffect } from "react";
 import React from "react";
 
 const checkInSchema = z.object({
@@ -87,13 +52,13 @@ const checkInSchema = z.object({
   guestEmail: z.string().email("Valid email required"),
   guestPhone: z.string().min(10, "Valid phone number required"),
   roomId: z.string().min(1, "Room selection required"),
-  numberOfGuests: z.number().min(1, "At least one guest required"),
+  numberOfGuests: z.number().min(1, "At least 1 guest required"),
   specialRequests: z.string().optional(),
 });
 
 const checkOutSchema = z.object({
   bookingId: z.string().min(1, "Booking selection required"),
-  totalBill: z.number().min(0, "Total bill must be 0 or greater"),
+  totalBill: z.number().min(0, "Valid bill amount required"),
   paymentMethod: z.enum(["CASH", "CARD", "TRANSFER", "PAYSTACK"]),
 });
 
@@ -103,70 +68,18 @@ type CheckOutData = z.infer<typeof checkOutSchema>;
 export default function FrontDeskPWA() {
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
-  const [isOffline, setIsOffline] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [syncPending, setSyncPending] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showCheckOut, setShowCheckOut] = useState(false);
 
   const userHotel = user?.hotelId;
 
-  // Fetch rooms and bookings
-  const { data: rooms = [] } = useQuery<Room[]>({
-    queryKey: ["/api/hotels", userHotel, "rooms"],
-    enabled: !!userHotel,
-  });
-
-  const { data: bookings = [] } = useQuery<Booking[]>({
-    queryKey: ["/api/hotels", userHotel, "bookings"],
-    enabled: !!userHotel,
-  });
-
-  // Sync offline data
-  const syncOfflineData = useCallback(async () => {
-    setSyncPending(true);
-    try {
-      const offlineData = JSON.parse(localStorage.getItem('offlineBookings') || '[]') as Booking[];
-      for (const booking of offlineData) {
-        await apiRequest('POST', '/api/bookings', booking);
-      }
-      localStorage.removeItem('offlineBookings');
-      queryClient.invalidateQueries({ queryKey: ["/api/hotels", userHotel, "bookings"] });
-    } catch (error) {
-      console.error('Sync failed:', error);
-    } finally {
-      setSyncPending(false);
-    }
-  }, [userHotel]);
-
-  // Calculate stats
-  const availableRooms = useMemo(() => 
-    rooms.filter((room: Room) => room.status === 'available')
-  , [rooms]);
-
-  const occupiedRooms = useMemo(() => 
-    rooms.filter((room: Room) => room.status === 'occupied')
-  , [rooms]);
-
-  const todayCheckIns = useMemo(() => 
-    bookings.filter((booking: Booking) => {
-      const checkinDate = new Date(booking.checkinDate);
-      const today = new Date();
-      return checkinDate.toDateString() === today.toDateString();
-    })
-  , [bookings]);
-
-  const todayCheckOuts = useMemo(() => 
-    bookings.filter((booking: Booking) => {
-      const checkoutDate = new Date(booking.checkoutDate);
-      const today = new Date();
-      return checkoutDate.toDateString() === today.toDateString();
-    })
-  , [bookings]);
-
   // PWA offline capabilities
   useEffect(() => {
     const handleOnline = () => {
       setIsOffline(false);
+      // Sync offline data when back online
       syncOfflineData();
     };
     const handleOffline = () => setIsOffline(true);
@@ -189,7 +102,36 @@ export default function FrontDeskPWA() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [syncOfflineData]);
+  }, []);
+
+  const syncOfflineData = async () => {
+    setSyncPending(true);
+    try {
+      // Sync offline bookings, check-ins, check-outs
+      const offlineData = JSON.parse(localStorage.getItem('offlineBookings') || '[]');
+      for (const booking of offlineData) {
+        await apiRequest('POST', '/api/bookings', booking);
+      }
+      localStorage.removeItem('offlineBookings');
+      queryClient.invalidateQueries({ queryKey: ["/api/hotels", userHotel, "bookings"] });
+    } catch (error) {
+      console.error('Sync failed:', error);
+    } finally {
+      setSyncPending(false);
+    }
+  };
+
+  // Fetch rooms
+  const { data: rooms, isLoading: roomsLoading } = useQuery<Room[]>({
+    queryKey: ["/api/hotels", userHotel, "rooms"],
+    enabled: !!userHotel,
+  });
+
+  // Fetch bookings
+  const { data: bookings, isLoading: bookingsLoading } = useQuery<Booking[]>({
+    queryKey: ["/api/hotels", userHotel, "bookings"],
+    enabled: !!userHotel,
+  });
 
   const checkInForm = useForm<CheckInData>({
     resolver: zodResolver(checkInSchema),
