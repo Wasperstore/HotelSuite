@@ -31,6 +31,7 @@ import {
   Settings,
   ChevronDown
 } from "lucide-react";
+import { QRScanner } from '../components/QRScanner';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Room, Booking, User } from "@shared/schema";
 import HotelLogo, { DashboardHeader } from "@/components/ui/hotel-logo";
 import { useState, useEffect } from "react";
+import { useQRScanner } from "@/hooks/use-qr-scanner";
 import React from "react";
 
 const checkInSchema = z.object({
@@ -72,6 +74,38 @@ export default function FrontDeskPWA() {
   const [syncPending, setSyncPending] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showCheckOut, setShowCheckOut] = useState(false);
+  const [showQRScanner, setShowQRScanner] = useState(false);
+
+  const handleQRScan = async (decodedText: string) => {
+    try {
+      const bookingData = JSON.parse(decodedText);
+      if (bookingData.type === 'check-in' && bookingData.bookingId) {
+        const booking = bookings?.find(b => b.id === bookingData.bookingId);
+        if (booking) {
+          await checkInMutation.mutateAsync({
+            guestName: booking.guestName,
+            guestEmail: booking.guestEmail,
+            guestPhone: booking.guestPhone || '',
+            roomId: booking.roomId || '',
+            numberOfGuests: booking.numberOfGuests || 1,
+            specialRequests: booking.specialRequests || ''
+          });
+          setShowQRScanner(false);
+          toast({
+            title: 'Success',
+            description: 'Guest checked in successfully via QR code'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('QR code processing error:', error);
+      toast({
+        title: 'Error',
+        description: 'Invalid QR code format',
+        variant: 'destructive'
+      });
+    }
+  };
 
   const userHotel = user?.hotelId;
 
@@ -597,10 +631,32 @@ export default function FrontDeskPWA() {
             </DialogContent>
           </Dialog>
 
-          <Button variant="outline" className="h-16 flex flex-col items-center space-y-2" data-testid="button-qr-checkin">
-            <QrCode className="w-6 h-6" />
-            <span>QR Check-in</span>
-          </Button>
+          <Dialog open={showQRScanner} onOpenChange={setShowQRScanner}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="h-16 flex flex-col items-center space-y-2" data-testid="button-qr-checkin">
+                <QrCode className="w-6 h-6" />
+                <span>QR Check-in</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>QR Code Check-in</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  {showQRScanner && (
+                    <div className="w-full max-w-sm border rounded-lg overflow-hidden">
+                      <QRScanner onScan={handleQRScan} />
+                    </div>
+                  )}
+                </div>
+                <p className="text-center text-sm text-gray-500">
+                  Scan the guest's QR code to check them in automatically.
+                  The QR code should contain their booking details.
+                </p>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <Button variant="outline" className="h-16 flex flex-col items-center space-y-2" data-testid="button-print">
             <Printer className="w-6 h-6" />
